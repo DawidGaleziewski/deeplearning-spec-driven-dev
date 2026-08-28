@@ -17,7 +17,7 @@
 
 ## 3. Migrations
 
-3.1. Generate an initial TypeORM migration from the entity set.
+3.1. Author an initial TypeORM migration covering the entity set (hand-written to mirror the entity metadata — TypeORM's SQLite schema builder produces the same shape under `synchronize`, which the tests use).
 3.2. Verify the migration runs clean against a fresh SQLite file (create schema from nothing).
 3.3. Verify the migration is reversible (`down` drops cleanly) or document why not, if TypeORM/SQLite limitations make full reversibility impractical.
 
@@ -43,11 +43,11 @@ Disposable manual-testing aid. Not the Phase 2+ API/UI. Keep it isolated so it c
 6.3. Add link endpoints: `POST /dev/agents/:id/ailments` (attach an ailment to an agent) and `POST /dev/ailments/:id/therapies` (attach recommended therapies to an ailment).
 6.4. Serve one static HTML page (`public/index.html`) — via `@nestjs/serve-static` or a controller returning the file — with: a create `<form>` + a list view per entity, plus the two link controls. Vanilla JS `fetch`, no build step.
 6.5. Add a small inline `<style>` block: basic form/spacing/table layout only. No component library, no design work.
-6.6. Note in `api/README.md` how to start the service and open the test UI (`npm run start:dev`, then `http://localhost:3000/`).
+6.6. Note in `api/README.md` how to start the service and open the test UI (`npm run start:dev`, then `http://localhost:3000/dev` — the root `/` keeps the existing health-check string).
 
 ## 7. Wrap-up
 
 7.1. Run the full test suite and confirm all repository tests pass.
 7.2. Run the seed script against a clean migrated DB and manually spot-check the resulting rows (e.g. via a SQLite browser or a quick query script).
-7.3. Start the service, open the test UI, and manually exercise: create one of each entity, attach an ailment to an agent, attach two therapies to an ailment, create a booking — confirm the list views reflect the relationships.
+7.3. Start the service, open the test UI at `/dev`, and manually exercise: create one of each entity, attach an ailment to an agent, attach two therapies to an ailment, create a booking — confirm the list views reflect the relationships. (An `*.e2e-spec.ts` also drives these `/dev` endpoints automatically.)
 7.4. Update this feature's validation.md checklist as items are confirmed, then move to review/merge.

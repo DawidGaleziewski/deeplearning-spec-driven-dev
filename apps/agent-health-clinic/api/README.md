@@ -31,6 +31,44 @@
 $ npm install
 ```
 
+## Database (Phase 1 — core data model)
+
+SQLite via TypeORM. Entities: `Agent`, `Ailment`, `Therapy`, `Booking` (see
+`src/entities/`). Relationships: an agent has many ailments; an ailment has many
+recommended therapies (many-to-many); a booking links one agent to one therapy.
+
+```bash
+# create the schema in data/dev.sqlite from the migration
+$ npm run migration:run
+
+# populate representative rows (safe to re-run)
+$ npm run seed
+
+# revert the last migration
+$ npm run migration:revert
+
+# nuke + recreate + reseed data/dev.sqlite
+$ npm run db:reset
+```
+
+The test suite (`npm test`) does not use `data/dev.sqlite` — each repository test
+spins up its own isolated in-memory SQLite database.
+
+## Test UI (throwaway — Phase 1 only)
+
+A minimal HTML form for exercising the data model by hand. **Not** the Phase 2+
+Next.js frontend; delete `src/dev/` and `public/index.html` when the real API
+lands. Registered only when `NODE_ENV !== 'production'` (or `ENABLE_DEV_UI=true`).
+
+```bash
+$ npm run db:reset        # first time, so there is data to see
+$ npm run start:dev
+# open http://localhost:3000/dev
+```
+
+It talks to `POST`/`GET /dev/{agents,ailments,therapies,bookings}` plus
+`POST /dev/agents/:id/ailments` and `POST /dev/ailments/:id/therapies`.
+
 ## Compile and run the project
 
 ```bash
