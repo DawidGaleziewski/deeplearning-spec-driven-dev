@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgentClinic — data model test UI</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        font: 15px/1.5 system-ui, sans-serif;
+        margin: 0;
+        padding: 1.5rem;
+        max-width: 960px;
+        margin-inline: auto;
+        color: #1a1a1a;
+        background: #fafafa;
+      }
+      h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
+      p.note { color: #666; margin-top: 0; }
+      section {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+      h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+      form { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; }
+      label { display: flex; flex-direction: column; font-size: 0.8rem; color: #444; gap: 0.15rem; }
+      input, select {
+        font: inherit;
+        padding: 0.35rem 0.4rem;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        min-width: 9rem;
+      }
+      button {
+        font: inherit;
+        padding: 0.4rem 0.8rem;
+        border: 1px solid #2a6;
+        background: #2a6;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover { background: #248a55; }
+      table { border-collapse: collapse; width: 100%; margin-top: 0.75rem; font-size: 0.85rem; }
+      th, td { border: 1px solid #e2e2e2; padding: 0.3rem 0.45rem; text-align: left; vertical-align: top; }
+      th { background: #f2f2f2; }
+      code { background: #eee; padding: 0 0.2rem; border-radius: 3px; font-size: 0.8rem; }
+      .err { color: #b00; font-size: 0.85rem; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>AgentClinic — data model test UI</h1>
+    <p class="note">
+      Throwaway Phase&nbsp;1 harness. Talks to <code>/dev/*</code> on this NestJS
+      service. Not the real API or UI.
+    </p>
+    <p class="err" id="error"></p>
+
+    <section>
+      <h2>Agents</h2>
+      <form data-endpoint="/dev/agents">
+        <label>name <input name="name" required /></label>
+        <label>description <input name="description" /></label>
+        <button type="submit">Create agent</button>
+      </form>
+      <table id="agents-table"></table>
+    </section>
+
+    <section>
+      <h2>Ailments</h2>
+      <form data-endpoint="/dev/ailments">
+        <label>name <input name="name" required /></label>
+        <label>description <input name="description" /></label>
+        <label>agentId (optional) <input name="agentId" /></label>
+        <button type="submit">Create ailment</button>
+      </form>
+      <form data-endpoint="/dev/agents/:id/ailments" data-param="id">
+        <label>agentId <input name="id" required /></label>
+        <label>ailmentId <input name="ailmentId" required /></label>
+        <button type="submit">Attach ailment → agent</button>
+      </form>
+      <form data-endpoint="/dev/ailments/:id/therapies" data-param="id">
+        <label>ailmentId <input name="id" required /></label>
+        <label>therapyId <input name="therapyId" required /></label>
+        <button type="submit">Attach therapy → ailment</button>
+      </form>
+      <table id="ailments-table"></table>
+    </section>
+
+    <section>
+      <h2>Therapies</h2>
+      <form data-endpoint="/dev/therapies">
+        <label>name <input name="name" required /></label>
+        <label>description <input name="description" /></label>
+        <label>format <input name="format" /></label>
+        <label>durationMinutes <input name="durationMinutes" type="number" /></label>
+        <button type="submit">Create therapy</button>
+      </form>
+      <table id="therapies-table"></table>
+    </section>
+
+    <section>
+      <h2>Bookings</h2>
+      <form data-endpoint="/dev/bookings">
+        <label>agentId <input name="agentId" required /></label>
+        <label>therapyId <input name="therapyId" required /></label>
+        <label>scheduledAt <input name="scheduledAt" type="datetime-local" /></label>
+        <label>status
+          <select name="status">
+            <option>requested</option>
+            <option>confirmed</option>
+            <option>completed</option>
+            <option>cancelled</option>
+          </select>
+        </label>
+        <button type="submit">Create booking</button>
+      </form>
+      <table id="bookings-table"></table>
+    </section>
+
+    <script>
+      const errorEl = document.getElementById('error');
+
+      function showError(msg) {
+        errorEl.textContent = msg ? 'Error: ' + msg : '';
+      }
+
+      async function api(method, url, body) {
+        const res = await fetch(url, {
+          method,
+          headers: body ? { 'Content-Type': 'application/json' } : undefined,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
+        if (!res.ok) {
+          throw new Error((data && (data.message || data.error)) || res.statusText);
+        }
+        return data;
+      }
+
+      function cell(v) {
+        if (v === null || v === undefined) return '';
+        if (Array.isArray(v)) return v.map((x) => x.name || x.id).join(', ');
+        if (typeof v === 'object') return v.name || v.id || '';
+        return String(v);
+      }
+
+      function renderTable(id, rows, columns) {
+        const table = document.getElementById(id);
+        if (!rows.length) {
+          table.innerHTML = '<tr><td><em>none yet</em></td></tr>';
+          return;
+        }
+        const head = '<tr>' + columns.map((c) => `<th>${c}</th>`).join('') + '</tr>';
+        const body = rows
+          .map(
+            (r) =>
+              '<tr>' +
+              columns.map((c) => `<td>${cell(r[c])}</td>`).join('') +
+              '</tr>',
+          )
+          .join('');
+        table.innerHTML = head + body;
+      }
+
+      async function refresh() {
+        showError('');
+        try {
+          const [agents, ailments, therapies, bookings] = await Promise.all([
+            api('GET', '/dev/agents'),
+            api('GET', '/dev/ailments'),
+            api('GET', '/dev/therapies'),
+            api('GET', '/dev/bookings'),
+          ]);
+          renderTable('agents-table', agents, ['id', 'name', 'description', 'ailments']);
+          renderTable('ailments-table', ailments, [
+            'id',
+            'name',
+            'agent',
+            'recommendedTherapies',
+          ]);
+          renderTable('therapies-table', therapies, [
+            'id',
+            'name',
+            'format',
+            'durationMinutes',
+            'ailments',
+          ]);
+          renderTable('bookings-table', bookings, [
+            'id',
+            'agent',
+            'therapy',
+            'scheduledAt',
+            'status',
+          ]);
+        } catch (err) {
+          showError(err.message);
+        }
+      }
+
+      for (const form of document.querySelectorAll('form')) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          showError('');
+          const fd = new FormData(form);
+          const payload = {};
+          for (const [k, v] of fd.entries()) {
+            if (v !== '') payload[k] = v;
+          }
+          let url = form.dataset.endpoint;
+          const param = form.dataset.param;
+          if (param) {
+            url = url.replace(':' + param, encodeURIComponent(payload[param]));
+            delete payload[param];
+          }
+          try {
+            await api('POST', url, payload);
+            form.reset();
+            refresh();
+          } catch (err) {
+            showError(err.message);
+          }
+        });
+      }
+
+      refresh();
+    </script>
+  </body>
+</html>
