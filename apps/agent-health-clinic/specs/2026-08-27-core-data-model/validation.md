@@ -1,6 +1,6 @@
 # Validation — Core Data Model
 
-This phase is done when all of the following hold. No HTTP endpoints or UI are in scope, so validation is entirely at the schema/repository level, per the roadmap.
+This phase is done when all of the following hold. Primary validation is at the schema/repository level, per the roadmap. Per the 2026-08-28 amendment, a minimal throwaway test UI also ships and has its own (manual) checks below.
 
 ## Schema & migrations
 
@@ -23,8 +23,18 @@ This phase is done when all of the following hold. No HTTP endpoints or UI are i
 - [ ] Full test suite passes locally (`npm test` or equivalent in the NestJS service).
 - [ ] Tests run against an isolated test database (temp/in-memory SQLite), not a shared dev database.
 
+## Minimal test UI (amendment — 2026-08-28)
+
+- [ ] Starting the NestJS service and opening `http://localhost:3000/` serves a single HTML page with a create form and a list view for each of Agent, Ailment, Therapy, Booking.
+- [ ] From the page, a new row of each entity can be created and then appears in that entity's list.
+- [ ] The page can attach an ailment to an agent, and the agent's list view then shows that ailment.
+- [ ] The page can attach multiple recommended therapies to an ailment, and the ailment's list view then shows them (and a therapy's list view shows the ailments it's recommended for).
+- [ ] A booking can be created linking an existing agent and therapy with a valid status, and it appears in the booking list with both relations resolved.
+- [ ] The test module/endpoints and `public/` page are isolated (single `DevModule` + one HTML file) and are not registered when `NODE_ENV=production` (or the dev flag is off).
+- [ ] Styling is limited to one inline `<style>` block; no MUI, Tailwind, bundler, or frontend framework was added to the service.
+
 ## Ready to merge when
 
 - [ ] All checkboxes above are checked.
-- [ ] No HTTP endpoints or Next.js changes were introduced (scope stayed data-layer only, per requirements.md).
+- [ ] The only HTTP surface added is the disposable `/dev/*` test API; no Next.js frontend, no production API design was introduced (per requirements.md).
 - [ ] The plan.md task groups are all complete.

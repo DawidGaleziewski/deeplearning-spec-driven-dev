@@ -34,8 +34,20 @@
 5.4. Unit tests for `Therapy` repository: CRUD; fetch ailments it's recommended for.
 5.5. Unit tests for `Booking` repository: CRUD; verify FK relations to `Agent` and `Therapy` resolve correctly; verify status enum values are enforced/stored correctly.
 
-## 6. Wrap-up
+## 6. Minimal test surface (amendment — 2026-08-28)
 
-6.1. Run the full test suite and confirm all repository tests pass.
-6.2. Run the seed script against a clean migrated DB and manually spot-check the resulting rows (e.g. via a SQLite browser or a quick query script).
-6.3. Update this feature's validation.md checklist as items are confirmed, then move to review/merge.
+Disposable manual-testing aid. Not the Phase 2+ API/UI. Keep it isolated so it can be deleted in one commit.
+
+6.1. Create a `DevModule` (e.g. `src/dev/`) registered in `AppModule` only when not in production (`NODE_ENV !== 'production'` or an `ENABLE_DEV_UI` flag).
+6.2. Add thin controllers under `DevModule` with, per entity (Agent, Ailment, Therapy, Booking): `POST /dev/<entity>` (create from JSON body) and `GET /dev/<entity>` (list all, with relations loaded). Delegate straight to the TypeORM repositories — no DTO/validation layer.
+6.3. Add link endpoints: `POST /dev/agents/:id/ailments` (attach an ailment to an agent) and `POST /dev/ailments/:id/therapies` (attach recommended therapies to an ailment).
+6.4. Serve one static HTML page (`public/index.html`) — via `@nestjs/serve-static` or a controller returning the file — with: a create `<form>` + a list view per entity, plus the two link controls. Vanilla JS `fetch`, no build step.
+6.5. Add a small inline `<style>` block: basic form/spacing/table layout only. No component library, no design work.
+6.6. Note in `api/README.md` how to start the service and open the test UI (`npm run start:dev`, then `http://localhost:3000/`).
+
+## 7. Wrap-up
+
+7.1. Run the full test suite and confirm all repository tests pass.
+7.2. Run the seed script against a clean migrated DB and manually spot-check the resulting rows (e.g. via a SQLite browser or a quick query script).
+7.3. Start the service, open the test UI, and manually exercise: create one of each entity, attach an ailment to an agent, attach two therapies to an ailment, create a booking — confirm the list views reflect the relationships.
+7.4. Update this feature's validation.md checklist as items are confirmed, then move to review/merge.
