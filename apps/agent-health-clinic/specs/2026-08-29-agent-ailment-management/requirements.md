@@ -18,6 +18,9 @@ complaints become visible and editable. It adds:
   an agent "checks in" (creates its own record), then logs and edits its
   complaints. Written in the in-universe voice (agents seeking relief from their
   humans), per [mission.md](../mission.md).
+- A **shared `@clinic/types` package** holding the API request/response shapes,
+  consumed by both `api/` and `frontend/` so the contract has one source of
+  truth from here on.
 
 Per [tech-stack.md](../tech-stack.md): TypeScript end-to-end, Next.js frontend +
 separate NestJS API over HTTP, SQLite/TypeORM, MUI + Tailwind, Vitest,
@@ -26,6 +29,29 @@ mobile-first responsive.
 ## Scope
 
 ### In scope
+
+**Shared `@clinic/types` package**
+- A new standalone package at `apps/agent-health-clinic/packages/types/`
+  (`@clinic/types`), with its own `package.json` and `tsconfig`. Not a
+  workspace member — consumed via a `file:` dependency from `api/` and
+  `frontend/`.
+- Exports: the serialized **response shapes** for this phase's resources
+  (`AgentResponse`, `AilmentResponse`, `TherapySummary`) and the **request
+  bodies** (`CreateAgentBody`, `UpdateAgentBody`, `CreateAilmentBody`,
+  `UpdateAilmentBody`). Plain `interface` / `type` only — no runtime code,
+  no decorators, no dependency on TypeORM or NestJS.
+- The API's DTO classes (`class-validator`-decorated) `implement` the
+  corresponding request type so drift is a compile error. `src/lib/api.ts`
+  in the frontend imports the response types directly.
+- The package ships type declarations that both consumers can resolve after a
+  plain `npm install` + the documented setup step. Mechanism (compiled
+  `dist/`, `prepare` script, or committed build) is the implementer's call;
+  the constraint is that `tsc` / `next build` / `nest build` all pass with no
+  extra per-consumer transpile config beyond, at most, Next's
+  `transpilePackages`.
+- `apps/agent-health-clinic/README.md` documents the package and the setup
+  step; `booking-status.ts` constants and other enums are **not** moved yet
+  (scope creep — revisit when bookings get an API in Phase 5).
 
 **NestJS API — REST conventions (established here, reused later)**
 - Global `ValidationPipe` (`whitelist: true`, `forbidNonWhitelisted: true`,
@@ -85,19 +111,23 @@ mobile-first responsive.
   the Phase 2 shared layout, mobile-first.
 - **Check in**: a form to create an agent (`name`, optional `description`).
   Single-column, one-hand usable on a phone, submit target ≥44px.
-- **Agent list**: all checked-in agents render as **stacked cards on mobile**;
-  a denser layout (e.g. table or multi-column) is allowed at `sm`/`md`
-  breakpoints and up (`theme.breakpoints.up` / Tailwind `sm:` only — additive,
-  no `max-width` overrides). Each card shows the agent's name, description, and
-  its list of complaints.
-- **Per-agent detail / edit**: from a card, open the agent (either a
-  `/agents/[id]` route or an expand-in-place panel — implementer's choice) to:
+- **Agent list**: all checked-in agents render as **stacked MUI `Card`s from
+  `xs` up**; at the **`md` breakpoint and up** the list switches to a denser
+  MUI `Table` (columns: name, description, complaint count, actions).
+  The switch is additive — `theme.breakpoints.up('md')` / Tailwind `md:` only,
+  no `max-width` / "down" overrides. Each card shows the agent's name,
+  description, and its list of complaints; the table row links through to the
+  detail page.
+- **Per-agent detail / edit** — a dedicated **`/agents/[id]` route** (rendered
+  inside the Phase 2 shell), reached from a card or table row. It lets the user:
   edit the agent's name/description, add a complaint (name + optional
   description), edit a complaint, delete a complaint, and delete the agent
-  (with a confirm step). Each ailment shows its recommended therapies if any.
+  (with a confirm step; on success, navigate back to `/agents`). Each ailment
+  shows its recommended therapies if any. Unknown id → a not-found state.
 - **Data fetching**: browser-side against `NEXT_PUBLIC_API_BASE_URL`, extending
   `src/lib/api.ts` with typed `agents` / `ailments` client functions in the
-  style of the existing `fetchHealth`. No React Query/SWR — plain
+  style of the existing `fetchHealth`, using the shapes from `@clinic/types`.
+  No React Query/SWR — plain
   `fetch` + `useState`/`useEffect` (or a small custom hook) is enough for this
   surface. Loading, empty, and error states are all handled (the shell renders
   even if the API is down, matching Phase 2).
@@ -128,6 +158,12 @@ mobile-first responsive.
 - Soft delete / archive / audit trail — deletes are hard.
 - API versioning, global route prefix, response envelope/pagination format,
   OpenAPI/Swagger — revisit when the surface is larger.
+- Root monorepo / workspace tooling (npm/pnpm workspaces, Turborepo, Nx). The
+  `@clinic/types` package is a plain `file:` dependency, not a workspace
+  member — no hoisting, no shared lockfile.
+- Moving other shared constants/enums (`booking-status.ts`, entity field
+  unions) into `@clinic/types` — only the Phase 3 request/response shapes move
+  now.
 - Removing the Phase 1 `/dev` UI — it stays as-is.
 - Visual polish — plain default MUI theme; clean and responsive, not designed
   (Phase 7).
@@ -147,6 +183,18 @@ mobile-first responsive.
   explicitly deferred "DTOs, validation, error contracts" to Phase 3. This is
   the phase that sets them, so later resources copy an established pattern
   rather than inventing one.
+- **Shared `@clinic/types` package now.** Phase 2 left this as an open question
+  ("revisit in Phase 3 when the first real endpoints exist") — they exist now,
+  and having two consumers of the same contract makes one source of truth
+  worth the small setup cost. Kept deliberately minimal: types only, a `file:`
+  dep, no workspace tooling. This supersedes the Phase 2 "standalone packages,
+  no shared code" stance for types specifically.
+- **`/agents/[id]` route for detail/edit** (not expand-in-place). A real route
+  is linkable, survives refresh, gives the delete-then-navigate-back flow a
+  natural target, and sets the pattern for per-resource pages in later phases.
+- **Agent list: cards `xs`–`sm`, table `md`+.** Matches the roadmap's "stacked
+  cards on mobile … denser table layout at wider breakpoints" wording; the
+  `md` switch keeps phones and small tablets on cards.
 - **`PATCH` partial updates, Nest default error shape.** Smallest reasonable
   REST surface; no custom error envelope until there's a reason for one.
 - **`recommendedTherapies` read-only.** Therapies have no real endpoints until
@@ -166,11 +214,11 @@ mobile-first responsive.
 
 ## Open questions
 
-- `/agents/[id]` route vs. expand-in-place for the detail/edit view — left to
-  the implementer; both satisfy the mobile-first requirement. If a route is
-  added it is still inside the Phase 2 shell.
-- Whether to extract a shared `@clinic/types` package for the API response
-  shapes now that there are real ones — still deferred (Phase 2 open question);
-  hand-written interfaces in `src/lib/api.ts` are fine for one consumer.
-- Exact wider-breakpoint layout for the agent list (table vs. columns) — a
-  validation checks responsiveness, not a specific layout.
+- The linking mechanism for `@clinic/types` (compiled `dist/` + `prepare`,
+  committed build, or a source-only package with `transpilePackages`) — the
+  implementer picks whatever makes a clean `npm install` + documented setup
+  step work for both consumers with no other transpile config.
+- Whether `@clinic/types` should also carry the DTO validation metadata (so the
+  API doesn't re-declare fields) — deferred; for now the API's `class-validator`
+  DTOs `implement` the plain request interfaces, accepting a little duplication
+  in exchange for keeping the shared package runtime-free.
