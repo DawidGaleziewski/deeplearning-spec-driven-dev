@@ -13,6 +13,13 @@ Update it via the `changelog` skill before merging a branch.
 - Frontend: mobile-first base layout (sticky header, fluid `Container`, viewport metadata), a routing skeleton (`/agents`, `/dashboard` stubs), and a home page that round-trips `GET /health` browser-side against `NEXT_PUBLIC_API_BASE_URL` with pending / success / error states.
 - Frontend: Vitest + React Testing Library set up with home-page tests for the success and error states.
 - Updated `apps/agent-health-clinic/README.md` with install/run steps, ports, and env vars for both services.
+- Implemented Phase 3 (agent & ailment management) from `specs/2026-08-29-agent-ailment-management/`.
+- Added `packages/types` (`@clinic/types`) — a shared, runtime-free package of API request/response shapes, consumed by both `api/` and `frontend/` via a `file:` dependency (compiled output committed; frontend adds it to `transpilePackages`).
+- API: full REST CRUD for agents (`/agents`, `/agents/:id`) and ailments (`/ailments`, `/ailments/:id`), plus a `POST /agents/:id/ailments` check-in shortcut. Deleting an agent hard-deletes it but keeps its ailments, detached (`agent: null`). Recommended therapies are read-only on ailment responses this phase.
+- API: added a global `ValidationPipe` (`whitelist` + `forbidNonWhitelisted` + `transform`) via `src/app-config.ts`, shared with the e2e harness; DTOs implement the `@clinic/types` request shapes and UUID path params are validated. Added `class-validator` / `class-transformer`.
+- API: added service unit tests and `agents` / `ailments` e2e specs; documented the new endpoints and response shapes in `api/README.md`.
+- Frontend: `/agents` is now the agent-facing check-in screen — a check-in form plus the waiting-room roster (stacked cards on mobile, a table from the `md` breakpoint). New `/agents/[id]` chart route to edit an agent, log/edit/delete complaints (with confirm dialogs), and discharge the agent.
+- Frontend: extended `src/lib/api.ts` with typed agent/ailment client functions and an `ApiError`; added a `useAsync` loading hook, a reusable `ConfirmDialog`, and Vitest + RTL tests for the check-in screen and the chart route.
 
 ## 2026-08-28
 

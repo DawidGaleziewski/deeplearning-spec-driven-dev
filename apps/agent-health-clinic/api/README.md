@@ -31,6 +31,11 @@
 $ npm install
 ```
 
+This links the local `@clinic/types` package (`../packages/types`, the shared
+HTTP contract) via a `file:` dependency. Its build output is committed, so a
+plain `npm install` is enough; if you change `packages/types/src`, run
+`npm run build` in that directory.
+
 ## Running
 
 ```bash
@@ -52,22 +57,51 @@ The frontend (`../frontend/`) is a separate process on port 3001 — start both.
 ## HTTP surface & module tree
 
 `AppModule` composes the feature modules; each owns one slice of the domain and
-nothing reaches across another module's entities directly.
+nothing reaches across another module's entities directly (the one sanctioned
+exception: `AilmentsModule` holds a read-only `Agent` repository handle to
+resolve an ailment's `agentId`).
 
 | Module            | Owns                                   | Routes                        |
 | ----------------- | -------------------------------------- | ----------------------------- |
 | `AppModule`       | composition root                       | `GET /` (hello string)        |
 | `HealthModule`    | liveness probe, **no DB access**       | `GET /health` → `{ status: 'ok', uptime, timestamp }` |
 | `DatabaseModule`  | root TypeORM connection                | —                             |
-| `AgentsModule`    | `Agent` entity + repository            | — (endpoints land in Phase 3) |
-| `AilmentsModule`  | `Ailment` entity + repository          | —                             |
-| `TherapiesModule` | `Therapy` entity + repository          | —                             |
-| `BookingsModule`  | `Booking` entity + repository          | —                             |
+| `AgentsModule`    | `Agent` entity + REST surface          | `GET/POST /agents`, `GET/PATCH/DELETE /agents/:id`, `POST /agents/:id/ailments` |
+| `AilmentsModule`  | `Ailment` entity + REST surface        | `GET/POST /ailments`, `GET/PATCH/DELETE /ailments/:id` |
+| `TherapiesModule` | `Therapy` entity + repository          | — (catalog endpoints land in Phase 4) |
+| `BookingsModule`  | `Booking` entity + repository          | — (Phase 5)                   |
 | `DevModule`       | throwaway Phase 1 manual-test UI       | `GET/POST /dev/*` (dev only)   |
 
 `GET /health` is a **liveness** check — it never queries the database, so it
 stays green even when the DB is unavailable. Readiness reporting can move to
 `@nestjs/terminus` later when there are dependencies worth surfacing.
+
+### Agents & ailments API (Phase 3)
+
+Request bodies are validated by a global `ValidationPipe` (`whitelist` +
+`forbidNonWhitelisted` + `transform`, wired in `src/app-config.ts` and shared
+with the e2e harness). Unknown fields or a missing/blank `name` → `400`;
+unknown `:id` or `agentId` → `404`. `:id` path params must be UUIDs.
+
+Response shapes are the `*Response` types from **`@clinic/types`** (dates as
+ISO strings, relations trimmed to summaries by `src/common/serialization.ts`).
+
+| Method & path                | Body                                   | Returns |
+| ---------------------------- | -------------------------------------- | ------- |
+| `POST /agents`               | `{ name, description? }`               | `201` `AgentResponse` |
+| `GET /agents`                | —                                      | `AgentResponse[]`, oldest-first, each with its `ailments` |
+| `GET /agents/:id`            | —                                      | `AgentResponse` (ailments + their `recommendedTherapies`) |
+| `PATCH /agents/:id`          | `{ name?, description? }`              | updated `AgentResponse` |
+| `DELETE /agents/:id`         | —                                      | `204`; the agent's ailments are kept, `agent` set to `null` |
+| `POST /agents/:id/ailments`  | `{ name, description? }`               | `201` `AilmentResponse` attached to the agent — the check-in "add complaint" action |
+| `POST /ailments`             | `{ name, description?, agentId? }`     | `201` `AilmentResponse` |
+| `GET /ailments`              | —                                      | `AilmentResponse[]`, oldest-first, with `agent` + `recommendedTherapies` |
+| `GET /ailments/:id`          | —                                      | `AilmentResponse` |
+| `PATCH /ailments/:id`        | `{ name?, description?, agentId? }`    | updated; send `agentId: null` to detach |
+| `DELETE /ailments/:id`       | —                                      | `204` |
+
+Recommended therapies on an ailment are **read-only** this phase (surfaced from
+seed data); the editable link is Phase 4.
 
 ## Database (Phase 1 — core data model)
 

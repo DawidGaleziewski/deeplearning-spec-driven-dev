@@ -21,6 +21,21 @@ Two **standalone** services, started independently (two terminals), talking over
 
 Each has its own `package.json` and lockfile — there is no root workspace tooling yet.
 
+### `packages/types` — shared HTTP contract
+
+`@clinic/types` (`packages/types/`) holds the request/response shapes both
+services share — types only, no runtime code. Each service depends on it with a
+`file:` specifier, so `npm install` in `api/` or `frontend/` symlinks it in.
+The compiled output in `packages/types/dist/` is **committed**, so a fresh
+install needs no extra step. After editing `packages/types/src/`, rebuild it:
+
+```bash
+cd packages/types && npm run build
+```
+
+The frontend also lists it in `transpilePackages` (`next.config.ts`). See
+[`packages/types/README.md`](packages/types/README.md).
+
 ## Running locally
 
 ```bash
@@ -40,6 +55,11 @@ npm run dev           # http://localhost:3001
 Open <http://localhost:3001> — the home page round-trips `GET /health` from the
 browser and shows **API: ok**. Stop the API and reload: the page still renders
 with an "API unavailable" notice.
+
+**`/agents`** is the agent-facing check-in screen (Phase 3): check in an agent,
+open its chart at `/agents/[id]`, and log/edit/remove complaints. All data is
+fetched browser-side from `NEXT_PUBLIC_API_BASE_URL`; the screen still renders
+(with an error notice) when the API is down.
 
 ## Environment variables
 
@@ -66,4 +86,5 @@ cd api && npm test && npm run test:e2e
 cd frontend && npm test
 ```
 
-More detail on the API module tree in [`api/README.md`](api/README.md).
+More detail on the API module tree and the agents/ailments endpoints in
+[`api/README.md`](api/README.md).
