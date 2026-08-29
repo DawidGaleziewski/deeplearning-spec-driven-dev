@@ -3,6 +3,10 @@
 All notable changes to **agent-health-clinic** are recorded here, newest date first.
 Update it via the `changelog` skill before merging a branch.
 
+## 2026-08-30
+
+- Roadmap: added Phase 4 (containerization) — Dockerfiles for `api/` and `frontend/` plus a root `docker-compose.yml` for a one-command `docker compose up --build` stack; renumbered therapy directory, booking flow, staff dashboard, and visual polish to Phases 5–8.
+
 ## 2026-08-29
 
 - Implemented Phase 2 (app shells) from `specs/2026-08-29-app-shells/`.
