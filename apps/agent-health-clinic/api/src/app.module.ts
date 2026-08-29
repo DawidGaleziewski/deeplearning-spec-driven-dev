@@ -6,6 +6,7 @@ import { AgentsModule } from './agents/agents.module.js';
 import { AilmentsModule } from './ailments/ailments.module.js';
 import { TherapiesModule } from './therapies/therapies.module.js';
 import { BookingsModule } from './bookings/bookings.module.js';
+import { HealthModule } from './health/health.module.js';
 import { DevModule, isDevUiEnabled } from './dev/dev.module.js';
 
 @Module({
@@ -15,6 +16,7 @@ import { DevModule, isDevUiEnabled } from './dev/dev.module.js';
     AilmentsModule,
     TherapiesModule,
     BookingsModule,
+    HealthModule,
     ...(isDevUiEnabled() ? [DevModule] : []),
   ],
   controllers: [AppController],

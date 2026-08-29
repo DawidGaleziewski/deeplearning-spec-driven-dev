@@ -31,6 +31,44 @@
 $ npm install
 ```
 
+## Running
+
+```bash
+$ npm run start:dev      # watch mode, listens on $PORT (default 3000)
+```
+
+The frontend (`../frontend/`) is a separate process on port 3001 — start both.
+
+### Environment variables
+
+| Variable          | Default                  | Purpose                                                          |
+| ----------------- | ------------------------ | --------------------------------------------------------------- |
+| `PORT`            | `3000`                   | HTTP listen port (`main.ts`).                                   |
+| `FRONTEND_ORIGIN` | `http://localhost:3001`  | Allowed CORS origin for browser calls from the Next.js app.    |
+| `DATABASE_PATH`   | `data/dev.sqlite`        | SQLite file (`:memory:` in tests).                             |
+| `DB_SYNCHRONIZE`  | `false`                  | TypeORM auto-schema; migrations are the real path.            |
+| `ENABLE_DEV_UI`   | unset                    | Force-register the throwaway `/dev` UI (also on when `NODE_ENV !== 'production'`). |
+
+## HTTP surface & module tree
+
+`AppModule` composes the feature modules; each owns one slice of the domain and
+nothing reaches across another module's entities directly.
+
+| Module            | Owns                                   | Routes                        |
+| ----------------- | -------------------------------------- | ----------------------------- |
+| `AppModule`       | composition root                       | `GET /` (hello string)        |
+| `HealthModule`    | liveness probe, **no DB access**       | `GET /health` → `{ status: 'ok', uptime, timestamp }` |
+| `DatabaseModule`  | root TypeORM connection                | —                             |
+| `AgentsModule`    | `Agent` entity + repository            | — (endpoints land in Phase 3) |
+| `AilmentsModule`  | `Ailment` entity + repository          | —                             |
+| `TherapiesModule` | `Therapy` entity + repository          | —                             |
+| `BookingsModule`  | `Booking` entity + repository          | —                             |
+| `DevModule`       | throwaway Phase 1 manual-test UI       | `GET/POST /dev/*` (dev only)   |
+
+`GET /health` is a **liveness** check — it never queries the database, so it
+stays green even when the DB is unavailable. Readiness reporting can move to
+`@nestjs/terminus` later when there are dependencies worth surfacing.
+
 ## Database (Phase 1 — core data model)
 
 SQLite via TypeORM. Entities: `Agent`, `Ailment`, `Therapy`, `Booking` (see
