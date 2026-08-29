@@ -7,8 +7,8 @@ mobile-first, agent-facing check-in UI — with the Phase 1–2 surface unchange
 > Implementation status (2026-08-29): automated boxes verified via the API unit
 > (35) + e2e (16) suites, the frontend Vitest suite (13), `curl` against a
 > running dev server, `oxlint` / `eslint`, and `nest build` / `next build`. The
-> responsive / interactive-target checks under **Responsive (manual)** are
-> left for the maintainer to confirm on local dev.
+> responsive / interactive-target checks under **Responsive (manual)** were
+> confirmed by the maintainer on local dev the same day.
 
 ## Shared `@clinic/types`
 
@@ -94,13 +94,14 @@ mobile-first, agent-facing check-in UI — with the Phase 1–2 surface unchange
 
 ## Responsive (manual)
 
-- [ ] `/agents` list and `/agents/[id]` checked at ~375px, ~768px, ~1280px:
-      no horizontal scroll, content reflows, nothing clipped.
-- [ ] The list is cards at ~375px and ~768px, table at ~1280px; the table has
+- [x] `/agents` list and `/agents/[id]` checked at ~375px, ~768px, ~1280px:
+      no horizontal scroll, content reflows, nothing clipped. _(Maintainer,
+      local dev.)_
+- [x] The list is cards at ~375px and ~768px, table at ~1280px; the table has
       its own horizontal-scroll container if it would otherwise overflow.
-- [ ] Forms are single-column and one-hand usable on a phone; submit/confirm
+- [x] Forms are single-column and one-hand usable on a phone; submit/confirm
       targets are ≥44px; no hover-only affordances.
-- [ ] Wider-breakpoint layout changes are additive (`theme.breakpoints.up` /
+- [x] Wider-breakpoint layout changes are additive (`theme.breakpoints.up` /
       Tailwind `md:`+), no `max-width` / "down" overrides.
 
 ## Tests
@@ -120,8 +121,7 @@ mobile-first, agent-facing check-in UI — with the Phase 1–2 surface unchange
 
 ## Ready to merge when
 
-- [ ] All boxes above are checked. _(Everything except the **Responsive
-      (manual)** section, pending maintainer confirmation on local dev.)_
+- [x] All boxes above are checked.
 - [x] Scope held: no therapy-catalog endpoints, no editable ailment↔therapy
       link, no booking flow, no `/dashboard` work, no auth, no pagination /
       search, no soft-delete, no npm/pnpm workspace tooling, no other enums
