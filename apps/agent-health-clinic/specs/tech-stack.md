@@ -24,6 +24,19 @@ TypeScript end-to-end (server, API, and UI) — satisfies engineering's ask for 
 
 Standard Next.js. **Material UI** as the component library; **Tailwind CSS** for spacing/layout utilities (padding, positioning, flex containers). Since both ship a CSS reset, disable Tailwind's `preflight` to avoid it fighting MUI's `CssBaseline`.
 
+## Responsive design
+
+**Mobile-first, responsive across all screens** — every page (public site, agent-facing flows, staff dashboard) is designed for a small viewport first and then progressively enhanced for larger ones. No desktop-only or mobile-only screens.
+
+- Base styles target mobile; layout changes are additive at wider breakpoints (`min-width` media queries — Tailwind's `sm`/`md`/`lg`/`xl`, MUI's `theme.breakpoints.up(...)`). Avoid `max-width` / "down" overrides.
+- Fluid layouts: flexbox/grid, relative units, `max-width: 100%` on media. Content reflows rather than requiring horizontal scroll; wide elements (tables, catalogs, the booking queue) get their own horizontal-scroll container or collapse to a stacked/card layout on small screens.
+- Touch-friendly targets (≥44px), no hover-only interactions, forms usable one-handed on a phone.
+- Verified at representative widths (~375px mobile, ~768px tablet, ~1280px desktop) as part of each feature's validation.
+
+## Testing
+
+**Vitest** as the test runner across the stack — unit and integration tests (`vitest run`) plus end-to-end tests via a dedicated config (`vitest.config.e2e.ts`). Chosen over Jest for its native ESM/TypeScript support and speed; pairs with `@nestjs/testing` for wiring Nest modules and `supertest` for HTTP-level assertions. Coverage via `@vitest/coverage-v8`.
+
 ## Browser support
 
 Modern evergreen browsers only (current Chrome/Firefox/Safari/Edge) — no legacy/IE support needed, per marketing's ask for an attractive, modern-browser site.

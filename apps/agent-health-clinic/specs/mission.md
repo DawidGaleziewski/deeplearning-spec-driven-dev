@@ -18,4 +18,4 @@ This is a course/demo project first — playful in premise, but built like a rea
 
 - **For engineering**: a small, well-scoped domain (agents, ailments, therapies, bookings) that's realistic enough to exercise a full stack without being a toy CRUD app.
 - **For product**: enough domain richness (diagnoses, therapy catalog, booking lifecycle) to design real features around.
-- **For marketing/demos**: a premise that's instantly funny and explainable in one sentence, with a UI worth showing off.
+- **For marketing/demos**: a premise that's instantly funny and explainable in one sentence, with a UI worth showing off — mobile-first and fully responsive, so it demos just as well on a phone held up at a booth as on a projector.

@@ -16,7 +16,7 @@ In scope:
   - A Booking links one Agent to one Therapy at a specific time.
 - TypeORM migrations to create the SQLite schema from these entities.
 - A seed script that populates representative rows across all four entities and their relationships.
-- Repository-level unit tests exercising CRUD and relationship queries for each entity.
+- Repository-level unit tests (Vitest, per [tech-stack.md](../tech-stack.md)) exercising CRUD and relationship queries for each entity.
 - **A minimal test HTTP surface** inside the NestJS service, just enough to drive the test UI:
   - `POST` (create) and `GET` (list) for each of Agent, Ailment, Therapy, Booking.
   - Endpoints to link an Ailment to an Agent and to link recommended Therapies to an Ailment.
@@ -30,7 +30,7 @@ In scope:
 Out of scope (later phases):
 - The real HTTP/REST API design — resource modelling, DTOs, validation, error contracts, versioning (Phase 3+). The endpoints here are deliberately crude and disposable.
 - Any Next.js / MUI / Tailwind frontend work, routing, or layout (Phase 2+).
-- Visual design, branding, responsive behaviour, or copy for the test UI.
+- Visual design, branding, responsive behaviour, or copy for the test UI. The mobile-first responsive requirement in [tech-stack.md](../tech-stack.md#responsive-design) applies to the real Phase 2+ Next.js frontend, **not** to this disposable single-page `/dev` test aid — it only needs to be usable on a desktop browser. Responsiveness is a validation item starting with the Phase 2 app shell.
 - Booking lifecycle state transitions/business logic beyond storing a status field (Phase 5 owns the lifecycle behavior; this phase just needs the status to be representable in the schema).
 - Auth, staff dashboard, visual design (Phases 6-7).
 
@@ -43,7 +43,8 @@ Out of scope (later phases):
   - `Booking`: id, agent (FK), therapy (FK), scheduled time, status.
 - **Booking status enum**: `requested | confirmed | completed | cancelled`, matching Phase 5's stated lifecycle, even though transition logic isn't implemented until Phase 5. The column exists now so the schema doesn't need to change shape later.
 - **Ailment ↔ Therapy is many-to-many**: the roadmap says "an ailment has recommended therapies" (plural); a therapy realistically treats more than one ailment, so a join table is used rather than a one-to-many.
-- **Primary validation stays at the repository level**: the seed data + repository/unit tests remain the source of truth for correctness, per the roadmap's note ("verified via seed data and direct repository/unit tests"). The test UI is a convenience for manual exploration, not a substitute — it is not required to have automated test coverage.
+- **Primary validation stays at the repository level**: the seed data + repository/unit tests (Vitest) remain the source of truth for correctness, per the roadmap's note ("verified via seed data and direct repository/unit tests"). The test UI is a convenience for manual exploration, not a substitute — it is not required to have automated test coverage.
+- **Vitest as the test runner**: unit/repository tests via `npm test` (`vitest run`); the `/dev` endpoints are additionally driven by an e2e spec via `npm run test:e2e` (`vitest.config.e2e.ts`). Per [tech-stack.md](../tech-stack.md).
 - **Test UI/endpoints live in a clearly disposable place**: a single `dev`/`playground` module (e.g. `DevModule`) and a `public/` HTML file, so the whole thing can be removed in one commit when Phase 2/3 replace it. It should be trivially disable-able (e.g. only registered when `NODE_ENV !== 'production'` or behind an env flag).
 - **No new heavy dependencies**: static file serving via `@nestjs/serve-static` (or a hand-rolled controller) is acceptable; no frontend toolchain, bundler, or component library is added in this phase.
 

@@ -26,9 +26,9 @@
 4.1. Write a seed script (e.g. a NestJS CLI command or standalone script using the same TypeORM connection) that inserts a handful of representative rows: a few agents, ailments attached to agents, therapies, ailment↔therapy links, and bookings tying agents to therapies.
 4.2. Make the seed script idempotent or safely re-runnable against a clean DB (document the expected usage, e.g. "run against a freshly migrated DB").
 
-## 5. Repository-level tests
+## 5. Repository-level tests (Vitest)
 
-5.1. Set up a test database strategy (e.g. in-memory/temp SQLite file per test run) so tests don't touch dev data.
+5.1. Set up Vitest (`vitest.config.ts`) and a test database strategy (e.g. in-memory/temp SQLite file per test run) so tests don't touch dev data.
 5.2. Unit tests for `Agent` repository: create, read, update, delete; fetch with its ailments.
 5.3. Unit tests for `Ailment` repository: CRUD; fetch with recommended therapies; verify many-to-many linking/unlinking.
 5.4. Unit tests for `Therapy` repository: CRUD; fetch ailments it's recommended for.
@@ -47,7 +47,7 @@ Disposable manual-testing aid. Not the Phase 2+ API/UI. Keep it isolated so it c
 
 ## 7. Wrap-up
 
-7.1. Run the full test suite and confirm all repository tests pass.
+7.1. Run the full test suite (`npm test` / `vitest run`) and confirm all repository tests pass.
 7.2. Run the seed script against a clean migrated DB and manually spot-check the resulting rows (e.g. via a SQLite browser or a quick query script).
-7.3. Start the service, open the test UI at `/dev`, and manually exercise: create one of each entity, attach an ailment to an agent, attach two therapies to an ailment, create a booking — confirm the list views reflect the relationships. (An `*.e2e-spec.ts` also drives these `/dev` endpoints automatically.)
+7.3. Start the service, open the test UI at `/dev`, and manually exercise: create one of each entity, attach an ailment to an agent, attach two therapies to an ailment, create a booking — confirm the list views reflect the relationships. (A Vitest `*.e2e-spec.ts` under `npm run test:e2e` also drives these `/dev` endpoints automatically.)
 7.4. Update this feature's validation.md checklist as items are confirmed, then move to review/merge.

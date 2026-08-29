@@ -15,12 +15,12 @@ This phase is done when all of the following hold. Primary validation is at the 
 - [x] After seeding, the database contains: multiple agents (3), ailments linked to those agents, therapies (3), ailments linked to multiple therapies and therapies recommended for multiple ailments (e.g. "Boundary Setting" → 2 ailments), and bookings linking an agent and a therapy with valid statuses (2).
 - [x] Spot-checking the seeded rows confirms relationships resolve correctly (agent → ailments, ailment → recommended therapies, booking → agent/therapy).
 
-## Repository/unit tests
+## Repository/unit tests (Vitest)
 
-- [x] Repository-level tests exist for all four entities covering create, read, update, delete. — `api/src/**/*.repository.spec.ts`.
+- [x] Repository-level Vitest tests exist for all four entities covering create, read, update, delete. — `api/src/**/*.repository.spec.ts`.
 - [x] Relationship queries are tested: agent→ailments, ailment→therapies (and reverse), booking→agent/therapy; plus many-to-many link/unlink and FK cascade / set-null behaviour.
 - [x] Booking status only accepts the four defined values (`requested | confirmed | completed | cancelled`); an invalid value is rejected at the DB level (CHECK constraint).
-- [x] Full test suite passes locally — `npm test` (18 tests) and `npm run test:e2e` (4 tests).
+- [x] Full Vitest suite passes locally — `npm test` / `vitest run` (18 tests) and `npm run test:e2e` (4 tests).
 - [x] Tests run against an isolated test database (fresh in-memory SQLite per test), not the shared `data/dev.sqlite`.
 
 ## Minimal test UI (amendment — 2026-08-28)
@@ -32,6 +32,7 @@ This phase is done when all of the following hold. Primary validation is at the 
 - [x] A booking can be created linking an existing agent and therapy with a valid status, and it appears in the booking list with both relations resolved.
 - [x] The test module/endpoints and `public/` page are isolated (single `DevModule` + `src/dev/` + one HTML file) and are not registered when `NODE_ENV=production` (unless `ENABLE_DEV_UI=true`).
 - [x] Styling is limited to one inline `<style>` block; no MUI, Tailwind, bundler, or frontend framework was added to the service.
+- [x] The `/dev` endpoints are covered by a Vitest e2e spec (`vitest.config.e2e.ts`), run via `npm run test:e2e`.
 
 ## Ready to merge when
 
