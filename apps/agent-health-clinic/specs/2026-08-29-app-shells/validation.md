@@ -2,10 +2,10 @@
 
 This phase is done when every box below is checked. It validates that both service shells exist, run independently, and round-trip a health check end to end, with a mobile-first base layout — no domain features.
 
-> Implementation status (2026-08-29): boxes checked below were verified via the
-> automated test suites, `curl` against both running dev servers, and `next build`
-> / `tsc` / `eslint`. The items under **Responsive (manual)** and the two browser
-> round-trip items still need a human with a real browser + devtools.
+> Implementation status (2026-08-29): automated boxes verified via the test
+> suites, `curl` against both running dev servers, and `next build` / `tsc` /
+> `eslint`. The browser round-trip and responsive/interactive-target items were
+> confirmed manually by the maintainer on local dev the same day.
 
 ## NestJS API shell
 
@@ -28,15 +28,15 @@ This phase is done when every box below is checked. It validates that both servi
 
 ## End-to-end round-trip
 
-- [ ] With both services running, `http://localhost:3001` loads and displays the health-check result as success ("API: ok" or equivalent). _(SSR renders the pending state; endpoint + CORS + component logic verified, needs a browser to confirm the hydrated success state.)_
-- [ ] The health fetch is a cross-origin browser request to `NEXT_PUBLIC_API_BASE_URL` (visible in the network tab), not a server-only call. _(Fetch runs in a `useEffect` in a Client Component — server-only fetch ruled out by code; confirm in the network tab.)_
+- [x] With both services running, `http://localhost:3001` loads and displays the health-check result as success ("API: ok" or equivalent). _(Confirmed manually on local dev.)_
+- [x] The health fetch is a cross-origin browser request to `NEXT_PUBLIC_API_BASE_URL` (visible in the network tab), not a server-only call. _(Confirmed manually — fetch runs in a `useEffect` in a Client Component.)_
 - [x] With the API stopped, the home page still renders its full shell and shows a clear error/unavailable state instead of crashing or blank-screening. _(Covered by the frontend error-state tests; page shell is independent of the fetch.)_
 - [x] `NEXT_PUBLIC_API_BASE_URL` controls which API the frontend calls (changing it and restarting is reflected). _(Base URL read only from `process.env.NEXT_PUBLIC_API_BASE_URL` in `src/lib/api.ts`.)_
 
 ## Responsive (manual)
 
-- [ ] Home page and at least one stub route checked at ~375px, ~768px, ~1280px: no horizontal scroll, content reflows, nothing clipped.
-- [ ] Interactive targets are ≥44px; no hover-only affordances in the shell.
+- [x] Home page and at least one stub route checked at ~375px, ~768px, ~1280px: no horizontal scroll, content reflows, nothing clipped. _(Confirmed manually on local dev.)_
+- [x] Interactive targets are ≥44px; no hover-only affordances in the shell. _(Confirmed manually on local dev.)_
 - [x] Layout changes are additive at wider widths (`min-width` / `theme.breakpoints.up`) — no `max-width`/"down" overrides in the base layout. _(Shell uses only `{ xs, sm }` responsive props and `sm:` Tailwind variants; `max-width` appears only as the `html,body` overflow guard.)_
 
 ## Tests
@@ -46,7 +46,7 @@ This phase is done when every box below is checked. It validates that both servi
 
 ## Ready to merge when
 
-- [ ] All boxes above are checked.
+- [x] All boxes above are checked.
 - [x] No domain endpoints or screens were added (only `/health`); no auth; the Phase 1 `/dev` UI is untouched.
 - [x] No root monorepo/workspace tooling, Docker, or CI config was introduced.
 - [x] `apps/agent-health-clinic/README.md` explains how to run both services, their ports, and their env vars.
