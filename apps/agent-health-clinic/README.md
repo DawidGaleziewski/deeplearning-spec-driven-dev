@@ -121,19 +121,28 @@ time, **changing `API_PORT` requires `docker compose up --build`**.
 
 ### Makefile shortcuts
 
-Optional convenience wrappers (needs `make` — `sudo apt install make`). The
-`docker compose …` commands above work without it.
+Thin aliases over the `docker compose …` commands above — run from this
+directory. Needs `make` (`sudo apt install make`); everything works without it.
 
-| Target       | Command                                                    |
-| ------------ | --------------------------------------------------------- |
-| `make up`    | `docker compose up --build`                              |
-| `make up-d`  | detached                                                 |
-| `make down`  | `docker compose down`                                    |
-| `make clean` | `docker compose down -v` (drop the data volume)          |
-| `make logs`  | `docker compose logs -f`                                 |
-| `make seed`  | force wipe + reseed inside the running `api` container   |
-| `make reset` | drop the DB file, re-migrate and reseed in the container |
-| `make build` | `docker compose build`                                   |
+| Target       | Runs                                                     | Notes |
+| ------------ | ------------------------------------------------------- | ----- |
+| `make up`    | `docker compose up --build`                             | foreground; Ctrl-C to stop |
+| `make up-d`  | `docker compose up --build -d`                          | detached |
+| `make down`  | `docker compose down`                                   | stop; **keeps** the data volume |
+| `make clean` | `docker compose down -v`                                | stop **and** drop the data volume |
+| `make logs`  | `docker compose logs -f`                                | follow both services |
+| `make build` | `docker compose build`                                  | build images, don't start |
+| `make seed`  | `docker compose exec api node dist/seed/seed.js`        | force wipe + reseed; **stack must be running** |
+| `make reset` | drop `clinic.sqlite*`, re-migrate, reseed in the `api` container | **stack must be running** |
+
+Typical loop:
+
+```bash
+make up-d        # start in the background
+make logs        # watch it come up
+make down        # stop for the day (data kept)
+make clean       # ...or wipe and start fresh next time
+```
 
 ## Environment variables
 

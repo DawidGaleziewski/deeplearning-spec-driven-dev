@@ -10,11 +10,10 @@ Verify from a clean checkout of the branch, with Docker running, `cwd` =
 
 > **Status (2026-08-30):** validated on Docker Engine 29.7.2 / Compose v5.5.0
 > (native, WSL2 Ubuntu 24.04). Automated checks run against the live stack; the
-> maintainer additionally ran `docker compose up --build` / `down` by hand and
-> confirmed the app renders and works in the browser. Still open: the manual
-> responsive check at 375/768/1280px; the CI workflow needs a PR run; `make`
-> targets are unverified because `make` is not installed (`sudo apt install
-> make`) — the wrapped `docker compose …` commands all work.
+> maintainer additionally ran `docker compose up --build` / `down`, the `make`
+> targets (`up` / `down` / `clean`), and confirmed the app renders, works, and
+> is responsive in the browser. **Only open item:** the CI workflow needs its
+> first PR run to go green.
 
 ## App changes (no behaviour change)
 
@@ -117,11 +116,11 @@ Verify from a clean checkout of the branch, with Docker running, `cwd` =
       `api/dist`, `coverage`, `*.sqlite*`, `.git`, `specs`, local `.env` — and
       **keeps** `packages/types/dist` and the lockfiles. Build-context transfer
       is ~4kB (logged).
-- [ ] `Makefile` at the app root has `up` / `up-d` / `down` / `clean` / `logs` /
+- [x] `Makefile` at the app root has `up` / `up-d` / `down` / `clean` / `logs` /
       `seed` / `reset` / `build` targets, each a thin compose wrapper; `reset`
-      globs `clinic.sqlite*`. *Recipes reviewed; not executed — `make` is not
-      installed on this machine (`sudo apt install make` to use them). The raw
-      `docker compose` commands they wrap are all verified.*
+      globs `clinic.sqlite*`. *`up` / `down` / `clean` run by the maintainer;
+      `up-d` / `seed` / `reset` also exercised — `reset` drops `clinic.sqlite*`,
+      re-migrates and reseeds to `[Claude, Pixel, Ada]`.*
 
 ## CI
 
@@ -149,16 +148,14 @@ Verify from a clean checkout of the branch, with Docker running, `cwd` =
 
 ## Responsive (manual)
 
-- [ ] The containerized frontend at <http://localhost:3001> — home and
+- [x] The containerized frontend at <http://localhost:3001> — home and
       `/agents` — checked at ~375px, ~768px, ~1280px: renders identically to the
-      local-dev build, no horizontal scroll. *(needs a browser; production build
-      renders the same markup/CSS as local dev, which was checked in Phases 2–3.
-      Viewport meta present in the served HTML.)*
+      local-dev build, no horizontal scroll. *Maintainer confirmed responsive in
+      the browser.*
 
 ## Ready to merge when
 
-- [ ] All boxes above are checked. *(open: CI PR run; manual responsive check;
-      `make` targets — need `make` installed.)*
+- [ ] All boxes above are checked. *(only open: the CI workflow's first PR run.)*
 - [x] Scope held: no product feature/endpoint/UI/schema change (only the
       `seed.ts` refactor); no cloud deploy, no image registry/push, no Postgres,
       no dev-mode/hot-reload compose, no workspace tooling, no multi-arch, no
