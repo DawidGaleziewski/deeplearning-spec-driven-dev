@@ -121,10 +121,30 @@ $ npm run migration:revert
 
 # nuke + recreate + reseed data/dev.sqlite
 $ npm run db:reset
+
+# seed ONLY if the database is empty (used by the container entrypoint)
+$ npm run db:seed:if-empty
 ```
 
 The test suite (`npm test`) does not use `data/dev.sqlite` — each repository test
 spins up its own isolated in-memory SQLite database.
+
+### Container entrypoint (Docker — Phase 4)
+
+`DatabaseModule` does **not** apply migrations (`migrationsRun` is off), so in
+the container `api/docker-entrypoint.sh` is responsible for schema readiness. On
+every start it:
+
+1. runs pending migrations (`node dist/database/run-migrations.js` — idempotent);
+2. seeds **only if the database is empty** (`node dist/seed/seed-if-empty.js`) —
+   so agents/ailments created through the UI survive a restart;
+3. `exec`s the API (`node dist/main.js`).
+
+`seed.ts` still exposes the always-wipe-and-reseed behaviour as an exported
+`seed()` function; `npm run seed` / `npm run db:reset` are unchanged for local
+use. In the container `DATABASE_PATH=/data/clinic.sqlite` points at a named
+volume; `NODE_ENV=production` means `/dev` is not registered. See the app
+[README](../README.md#run-with-docker).
 
 ## Test UI (throwaway — Phase 1 only)
 

@@ -61,6 +61,66 @@ open its chart at `/agents/[id]`, and log/edit/remove complaints. All data is
 fetched browser-side from `NEXT_PUBLIC_API_BASE_URL`; the screen still renders
 (with an error notice) when the API is down.
 
+## Run with Docker
+
+An alternative to the two-terminal flow above: build and run the whole stack
+with one command. Both services ship as slim multi-stage images (production
+build, not `start:dev` / `next dev`) wired together by Compose.
+
+```bash
+# from this directory (apps/agent-health-clinic/)
+docker compose up --build        # or: make up
+```
+
+Open <http://localhost:3001> — same app as local dev, showing **API: ok**. On a
+fresh volume the database comes up migrated and seeded with demo data.
+
+```bash
+docker compose down              # stop; SQLite data persists on a named volume
+docker compose up                # restart — data (incl. agents you created) is still there
+docker compose down -v           # stop AND wipe the volume; next `up` re-seeds
+```
+
+The API container's entrypoint runs pending migrations on every start, then
+seeds **only if the database is empty** — so data entered through the UI
+survives a restart, and `down -v` is the "give me clean demo data again"
+gesture. `/dev` is **not** available in the container (`NODE_ENV=production`).
+
+### Configuration
+
+`docker compose` reads an optional `.env` in this directory. It has exactly two
+knobs — copy the template if you need to change a port:
+
+```bash
+cp .env.example .env             # optional; defaults (3000 / 3001) work with no .env
+```
+
+| Variable        | Default | Purpose                                    |
+| --------------- | ------- | ------------------------------------------ |
+| `API_PORT`      | `3000`  | Host port the API is published on.         |
+| `FRONTEND_PORT` | `3001`  | Host port the frontend is published on.    |
+
+`FRONTEND_ORIGIN` (API CORS) and `NEXT_PUBLIC_API_BASE_URL` (baked into the
+frontend bundle) are **derived** from these two ports in `docker-compose.yml` —
+do not set them yourself. Because `NEXT_PUBLIC_API_BASE_URL` is inlined at build
+time, **changing `API_PORT` requires `docker compose up --build`**.
+
+> This `.env` is only for the Docker stack. It is **not**
+> `frontend/.env.local.example`, which feeds the two-terminal flow above.
+
+### Makefile shortcuts
+
+| Target       | Command                                                    |
+| ------------ | --------------------------------------------------------- |
+| `make up`    | `docker compose up --build`                              |
+| `make up-d`  | detached                                                 |
+| `make down`  | `docker compose down`                                    |
+| `make clean` | `docker compose down -v` (drop the data volume)          |
+| `make logs`  | `docker compose logs -f`                                 |
+| `make seed`  | force wipe + reseed inside the running `api` container   |
+| `make reset` | drop the DB file, re-migrate and reseed in the container |
+| `make build` | `docker compose build`                                   |
+
 ## Environment variables
 
 ### `api/`

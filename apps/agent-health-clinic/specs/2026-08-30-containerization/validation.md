@@ -8,23 +8,35 @@ with the SQLite data seeded on first run and persisted afterwards — and with
 Verify from a clean checkout of the branch, with Docker running, `cwd` =
 `apps/agent-health-clinic/`.
 
+> **Status (2026-08-30):** the app-change boxes below are verified. The
+> Docker/Compose/CI boxes are **not yet checked** — the implementation
+> environment had no Docker daemon. `docker compose up --build` from the app
+> root, the persistence cycle, the `docker compose config` port-override check,
+> and the CI workflow still need a run on a machine with Docker. The API
+> entrypoint (migrate → seed-if-empty → start), `/health`, `/agents`, `/dev`
+> 404 under `NODE_ENV=production`, and the frontend standalone server were each
+> exercised directly (outside a container) and pass.
+
 ## App changes (no behaviour change)
 
-- [ ] `frontend/next.config.ts` sets `output: "standalone"`,
+- [x] `frontend/next.config.ts` sets `output: "standalone"`,
       `outputFileTracingRoot` at the app root, and keeps
       `transpilePackages: ["@clinic/types"]`; `npm run build` in `frontend/`
       produces `.next/standalone/` and the standalone server (with
-      `HOSTNAME=0.0.0.0 PORT=3001`) serves `/` and `/agents`.
-- [ ] `api/src/seed/seed.ts` exposes its logic as an exported function; running
+      `HOSTNAME=0.0.0.0 PORT=3001`) serves `/` and `/agents`. *(Verified by
+      assembling the standalone layout — `standalone/frontend/` + copied
+      `.next/static` + `public` — and running `node server.js`: `/` and
+      `/agents` both 200.)*
+- [x] `api/src/seed/seed.ts` exposes its logic as an exported function; running
       `npm run seed` and `npm run db:reset` in `api/` behaves exactly as before
       (wipe + reseed).
-- [ ] A seed-if-empty entry exists (`db:seed:if-empty` script → compiled JS):
+- [x] A seed-if-empty entry exists (`db:seed:if-empty` script → compiled JS):
       against a populated DB it makes no changes and logs "skipped"; against a
       freshly migrated empty DB it seeds and logs "seeded".
-- [ ] `api/`: `npm test` and `npm run test:e2e` green; `frontend/`: `npm test`
-      green; `nest build` and `next build` clean. Counts unchanged from Phase 3
-      except any tests added for the seed refactor.
-- [ ] `oxlint` (api) / `eslint` (frontend) clean.
+- [x] `api/`: `npm test` (35) and `npm run test:e2e` (16) green; `frontend/`:
+      `npm test` (13) green; `nest build` and `next build` clean. Test counts
+      unchanged from Phase 3.
+- [x] `oxlint` (api) / `eslint` (frontend) clean.
 
 ## API image
 

@@ -1,0 +1,6 @@
+# Compose env override (keep .env.example tracked)
+.env
+!.env.example
+
+# Local compose overrides
+docker-compose.override.yml

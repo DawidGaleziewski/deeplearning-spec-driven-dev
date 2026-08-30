@@ -1,0 +1,73 @@
+name: agent-health-clinic — docker build & smoke test
+
+# Builds both container images and runs a cross-service smoke test of the
+# containerized stack. Scoped to the agent-health-clinic app.
+on:
+  pull_request:
+    paths:
+      - "apps/agent-health-clinic/**"
+      - ".github/workflows/agent-health-clinic-docker.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: apps/agent-health-clinic
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build both images (reads the compose file's build config) with GitHub
+      # Actions layer caching.
+      - name: Build images
+        uses: docker/bake-action@v5
+        with:
+          workdir: apps/agent-health-clinic
+          files: docker-compose.yml
+          load: true
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+
+      - name: Start the stack
+        run: docker compose up -d
+
+      - name: Wait for the API healthcheck
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' agent-health-clinic-api-1 2>/dev/null || echo unknown)
+            echo "api health: $status"
+            [ "$status" = "healthy" ] && exit 0
+            sleep 3
+          done
+          echo "API did not become healthy in time" >&2
+          exit 1
+
+      - name: Liveness — frontend and API respond 200
+        run: |
+          curl -fsS http://localhost:3001 > /dev/null
+          curl -fsS http://localhost:3000/health > /dev/null
+
+      - name: Cross-service — CORS + seeded data through the wiring
+        run: |
+          headers=$(curl -sS -D - -o /tmp/agents.json \
+            -H 'Origin: http://localhost:3001' \
+            http://localhost:3000/agents)
+          echo "$headers"
+          echo "$headers" | grep -iq '^access-control-allow-origin: http://localhost:3001' \
+            || { echo "missing/incorrect Access-Control-Allow-Origin" >&2; exit 1; }
+          grep -q 'Claude' /tmp/agents.json \
+            || { echo "seeded agents not returned" >&2; cat /tmp/agents.json; exit 1; }
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
