@@ -10,10 +10,11 @@ Verify from a clean checkout of the branch, with Docker running, `cwd` =
 
 ## App changes (no behaviour change)
 
-- [ ] `frontend/next.config.ts` sets `output: "standalone"` and keeps
+- [ ] `frontend/next.config.ts` sets `output: "standalone"`,
+      `outputFileTracingRoot` at the app root, and keeps
       `transpilePackages: ["@clinic/types"]`; `npm run build` in `frontend/`
-      produces `.next/standalone/` and the standalone server serves `/` and
-      `/agents`.
+      produces `.next/standalone/` and the standalone server (with
+      `HOSTNAME=0.0.0.0 PORT=3001`) serves `/` and `/agents`.
 - [ ] `api/src/seed/seed.ts` exposes its logic as an exported function; running
       `npm run seed` and `npm run db:reset` in `api/` behaves exactly as before
       (wipe + reseed).
@@ -40,23 +41,29 @@ Verify from a clean checkout of the branch, with Docker running, `cwd` =
       (no-op), seed is **skipped**, previously created data is intact.
 - [ ] `GET /dev` → `404` in the container (`NODE_ENV=production`, override not
       set).
-- [ ] The image declares a `HEALTHCHECK`; `docker inspect` shows the container
-      reaching `healthy`.
-- [ ] The container runs as a non-root user.
+- [ ] The image declares a `HEALTHCHECK` with a `start_period`; `docker inspect`
+      shows the container reaching `healthy` on a fresh volume (first-boot
+      migrate + seed does not trip it).
+- [ ] The container runs as a non-root user and can write `clinic.sqlite` to the
+      fresh `/data` volume (ownership set in the Dockerfile before first mount).
 
 ## Frontend image
 
 - [ ] `docker build -f frontend/Dockerfile --build-arg
       NEXT_PUBLIC_API_BASE_URL=http://localhost:3000 .` (from the app root)
       succeeds; multi-stage on `node:24-slim`.
-- [ ] The runtime image serves the **production** build (standalone server / 
-      `next start`), never `next dev`; it does not contain the full
-      `node_modules` or source that the standalone trace excludes.
-- [ ] `@clinic/types` resolves at runtime (the home page and `/agents` render;
-      no module-not-found).
+- [ ] The runtime image serves the **production** build (standalone server),
+      never `next dev`; it does not contain the full `node_modules` or source
+      that the standalone trace excludes.
+- [ ] The home page and `/agents` render with no module-not-found. (`@clinic/types`
+      is type-only and erased at build — nothing to resolve at runtime; this
+      check just confirms the standalone layout is otherwise complete.)
+- [ ] The built client bundle has `http://localhost:3000` (the `API_PORT`
+      default) inlined — the `NEXT_PUBLIC_API_BASE_URL` build arg took effect.
 - [ ] Running the image alone (no API): `/` renders, `/agents` renders its
       API-unavailable state — no crash.
-- [ ] The container runs as a non-root user and listens on `3001`.
+- [ ] The container runs as a non-root user and listens on `3001` (bound
+      `0.0.0.0`, reachable from the host).
 
 ## docker-compose.yml (app root)
 
@@ -74,14 +81,20 @@ Verify from a clean checkout of the branch, with Docker running, `cwd` =
 - [ ] Clean slate: `docker compose down -v` → `docker compose up` → only the
       demo seed data is present.
 - [ ] `docker compose config` is valid with no `.env` present (defaults) and
-      with a `.env` overriding `API_PORT` / `FRONTEND_PORT`.
+      with a `.env` overriding `API_PORT` / `FRONTEND_PORT` — and the rendered
+      `FRONTEND_ORIGIN` and frontend `NEXT_PUBLIC_API_BASE_URL` build arg both
+      track the overridden ports (derived, not independently set).
+- [ ] With `API_PORT` overridden and `--build`, the browser round-trip still
+      works (bundle rebuilt against the new port, CORS origin still matches).
 - [ ] No `version:` key; a stable project name is set.
 
 ## .env, .dockerignore, Makefile
 
-- [ ] `.env.example` at the app root lists `API_PORT`, `FRONTEND_PORT`,
-      `FRONTEND_ORIGIN`, `NEXT_PUBLIC_API_BASE_URL` with the rebuild note; the
-      app-root `.gitignore` ignores `.env` and keeps `.env.example` tracked.
+- [ ] `.env.example` at the app root lists **only** `API_PORT` and
+      `FRONTEND_PORT`, with the "`API_PORT` change needs `--build`" note and a
+      note that it is distinct from `frontend/.env.local.example`; the app-root
+      `.gitignore` ignores `.env` (and `docker-compose.override.yml`) and keeps
+      `.env.example` tracked.
 - [ ] `.dockerignore` at the app root excludes `node_modules`, `.next`,
       `api/dist`, `coverage`, `*.sqlite*`, `.git`, `specs`, local `.env` — and
       **keeps** `packages/types/dist` and the lockfiles. Build-context transfer
@@ -89,25 +102,30 @@ Verify from a clean checkout of the branch, with Docker running, `cwd` =
 - [ ] `Makefile` at the app root: `make up`, `make down`, `make clean`,
       `make logs`, `make seed`, `make reset`, `make build` each run the
       expected compose command; `make up` then `make clean` round-trips.
+      `make reset` clears `clinic.sqlite*` (incl. `-wal` / `-shm`).
 
 ## CI
 
 - [ ] `.github/workflows/*.yml` at the **monorepo root** builds both images and
-      runs a smoke test (`up -d`, wait for `api` healthy, `curl` `/` and
+      runs the smoke test (`up -d`, wait for `api` healthy, `curl` `/` and
       `/health` for `200`, `down -v` always), scoped to
       `apps/agent-health-clinic/**` paths, with Buildx layer caching.
+- [ ] The smoke test includes a **cross-service** check: a request to
+      `http://localhost:3000/agents` sent with `Origin: http://localhost:3001`
+      comes back with a matching `Access-Control-Allow-Origin` and the seeded
+      agents (or an equivalent headless Playwright check of the frontend).
 - [ ] The workflow passes on this branch's PR.
 
 ## Docs
 
 - [ ] `apps/agent-health-clinic/README.md` has a "Run with Docker" section
-      **alongside** the two-terminal flow: the one command, URLs, `.env` step,
-      seed/persistence behaviour, `down` vs `down -v`, the
-      `NEXT_PUBLIC_API_BASE_URL` rebuild note, the `make` targets, and the
-      `/dev`-off-in-container note.
+      **alongside** the two-terminal flow: the one command, URLs, `.env` step
+      (and that it is not `frontend/.env.local.example`), seed/persistence
+      behaviour, `down` vs `down -v`, the "`API_PORT` change needs `--build`"
+      note, the `make` targets, and the `/dev`-off-in-container note.
 - [ ] `api/README.md` documents the container entrypoint (migrate-always /
-      seed-if-empty), the `db:seed:if-empty` script, and container
-      `DATABASE_PATH`.
+      seed-if-empty), that `DatabaseModule` relies on the entrypoint for
+      migrations, the `db:seed:if-empty` script, and container `DATABASE_PATH`.
 - [ ] `CHANGELOG.md` updated via the `changelog` skill.
 
 ## Responsive (manual)
