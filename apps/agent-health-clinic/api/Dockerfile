@@ -14,6 +14,11 @@ FROM node:24-slim AS build
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
+# `npm ci` runs the `prepare` (`tsc`) script of the `@clinic/types` `file:`
+# dependency — unlike a local `npm install`, which symlinks and skips it. That
+# package has no local `typescript`, so provide one build-wide. (Its committed
+# dist/ is what actually ships; this just lets `prepare` succeed.)
+RUN npm install -g typescript@5
 WORKDIR /app
 
 # `@clinic/types` (committed dist/) must sit at ../packages/types relative to
@@ -32,6 +37,8 @@ FROM node:24-slim AS prod-deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
+# See the build stage — `npm ci` triggers `@clinic/types`' `prepare` (`tsc`).
+RUN npm install -g typescript@5
 WORKDIR /app
 COPY packages/types/ ./packages/types/
 COPY api/package.json api/package-lock.json ./api/

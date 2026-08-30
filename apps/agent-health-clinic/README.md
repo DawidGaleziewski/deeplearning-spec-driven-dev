@@ -20,6 +20,8 @@ Two **standalone** services, started independently (two terminals), talking over
 | Frontend    | `frontend/`  | Next.js (App Router), MUI + Tailwind    | `3001`   |
 
 Each has its own `package.json` and lockfile — there is no root workspace tooling yet.
+Run them in two terminals (below) or as one containerized stack (see
+[Run with Docker](#run-with-docker)).
 
 ### `packages/types` — shared HTTP contract
 
@@ -67,13 +69,22 @@ An alternative to the two-terminal flow above: build and run the whole stack
 with one command. Both services ship as slim multi-stage images (production
 build, not `start:dev` / `next dev`) wired together by Compose.
 
+**Requires** Docker Engine with the Compose plugin (`docker compose version`).
+On WSL, run from a shell where `docker ps` works without `sudo`.
+
 ```bash
 # from this directory (apps/agent-health-clinic/)
 docker compose up --build        # or: make up
+
+# or detached, then follow logs:
+docker compose up --build -d
+docker compose logs -f
 ```
 
-Open <http://localhost:3001> — same app as local dev, showing **API: ok**. On a
-fresh volume the database comes up migrated and seeded with demo data.
+The first build takes a few minutes (both images install dependencies and run a
+production build); later builds are cached. When it's up, open
+<http://localhost:3001> — same app as local dev, showing **API: ok**. On a fresh
+volume the database comes up migrated and seeded with demo data.
 
 ```bash
 docker compose down              # stop; SQLite data persists on a named volume
@@ -109,6 +120,9 @@ time, **changing `API_PORT` requires `docker compose up --build`**.
 > `frontend/.env.local.example`, which feeds the two-terminal flow above.
 
 ### Makefile shortcuts
+
+Optional convenience wrappers (needs `make` — `sudo apt install make`). The
+`docker compose …` commands above work without it.
 
 | Target       | Command                                                    |
 | ------------ | --------------------------------------------------------- |

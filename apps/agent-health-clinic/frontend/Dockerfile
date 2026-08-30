@@ -8,6 +8,11 @@
 # build — install deps and produce a production standalone bundle
 # ---------------------------------------------------------------------------
 FROM node:24-slim AS build
+# `npm ci` runs the `prepare` (`tsc`) script of the `@clinic/types` `file:`
+# dependency — unlike a local `npm install`, which symlinks and skips it. That
+# package has no local `typescript`, so provide one build-wide. (Its committed
+# dist/ is what actually ships; this just lets `prepare` succeed.)
+RUN npm install -g typescript@5
 WORKDIR /app
 
 COPY packages/types/ ./packages/types/
