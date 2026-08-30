@@ -37,25 +37,29 @@ jobs:
       - name: Start the stack
         run: docker compose up -d
 
-      - name: Wait for the API healthcheck
+      - name: Wait for both services to report healthy
         run: |
-          for i in $(seq 1 30); do
-            status=$(docker inspect -f '{{.State.Health.Status}}' agent-health-clinic-api-1 2>/dev/null || echo unknown)
-            echo "api health: $status"
-            [ "$status" = "healthy" ] && exit 0
-            sleep 3
+          # frontend depends_on api: service_healthy, so it only starts once the
+          # API is up — then the Next standalone server needs a few seconds more.
+          for c in agent-health-clinic-api-1 agent-health-clinic-frontend-1; do
+            ok=
+            for i in $(seq 1 40); do
+              status=$(docker inspect -f '{{.State.Health.Status}}' "$c" 2>/dev/null || echo missing)
+              echo "$c: $status"
+              [ "$status" = healthy ] && { ok=1; break; }
+              sleep 3
+            done
+            [ -n "$ok" ] || { echo "$c did not become healthy in time" >&2; exit 1; }
           done
-          echo "API did not become healthy in time" >&2
-          exit 1
 
       - name: Liveness — frontend and API respond 200
         run: |
-          curl -fsS http://localhost:3001 > /dev/null
-          curl -fsS http://localhost:3000/health > /dev/null
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 2 http://localhost:3001 > /dev/null
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 2 http://localhost:3000/health > /dev/null
 
       - name: Cross-service — CORS + seeded data through the wiring
         run: |
-          headers=$(curl -sS -D - -o /tmp/agents.json \
+          headers=$(curl -sS --retry 5 --retry-all-errors --retry-delay 2 -D - -o /tmp/agents.json \
             -H 'Origin: http://localhost:3001' \
             http://localhost:3000/agents)
           echo "$headers"
