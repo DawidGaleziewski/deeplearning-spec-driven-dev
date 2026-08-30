@@ -1,0 +1,3 @@
+# Keeps the otherwise-empty public/ directory tracked by git.
+# Next.js serves static assets from here; the Docker build COPYs it into the
+# standalone runtime image, so the directory must exist in a fresh checkout.

@@ -20,6 +20,9 @@ COPY frontend/package.json frontend/package-lock.json ./frontend/
 WORKDIR /app/frontend
 RUN npm ci
 COPY frontend/ ./
+# `public/` may be empty (git does not track empty dirs); guarantee it exists so
+# the runtime stage's COPY of it never fails on a fresh checkout.
+RUN mkdir -p public
 
 # NEXT_PUBLIC_* values are inlined into the client bundle at build time, so the
 # API base URL is a build arg (derived from API_PORT by compose), not a runtime
