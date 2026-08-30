@@ -61,3 +61,24 @@ Eval this skill before calling it done: 2–3 realistic prompts, with-skill vs
 baseline in parallel worktree-isolated subagents, pre-registered assertions,
 comparison table + qualitative diff, then iterate.
 ```
+
+# mcp
+
+useful mcp is Context7. It gives agent knoladge on current packages. Often using CLI skill is better however.
+
+We can instal ctx7 with
+
+```
+npx ctx7 setup --claude
+
+```
+
+# plugins
+
+Many available for SDD. For example github spec kit.
+
+- Spec-ki
+- OpenSpec
+
+# backlog and reasearch
+We sometimes want to research i.e which technology to use. we can hold this in backlog/ siumilar way we do with specs. We can later add this by agent to roadmap
