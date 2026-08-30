@@ -1,0 +1,30 @@
+# Build context is this directory (the app root). Keep the upload small and the
+# builds reproducible: dependencies and build output are recreated inside the
+# images; source .ts and the committed packages/types/dist ARE needed.
+
+**/node_modules
+**/.next
+api/dist
+**/coverage
+**/*.sqlite
+**/*.sqlite-*
+**/*.tsbuildinfo
+
+.git
+.github
+specs
+
+# env — never bake local secrets/overrides into an image
+**/.env
+**/.env.local
+!.env.example
+
+# editor / OS cruft
+**/.DS_Store
+**/*.log
+**/.vscode
+**/.idea
+
+# NOTE: packages/types/dist and every package-lock.json are intentionally NOT
+# ignored — the build stages typecheck against the committed .d.ts and `npm ci`
+# needs the lockfiles.

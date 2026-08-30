@@ -1,0 +1,51 @@
+# One-command local stack for AgentClinic.
+#
+#   docker compose up --build     -> http://localhost:3001
+#   docker compose down           -> stop (SQLite data persists on a volume)
+#   docker compose down -v        -> stop + wipe data (next up re-seeds)
+#
+# Only two knobs, both optional (see .env.example): API_PORT / FRONTEND_PORT.
+# FRONTEND_ORIGIN and NEXT_PUBLIC_API_BASE_URL are DERIVED from them here so a
+# port change can never desync CORS or the browser's API URL. Changing API_PORT
+# needs `--build` (it is baked into the frontend bundle).
+name: agent-health-clinic
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      FRONTEND_ORIGIN: "http://localhost:${FRONTEND_PORT:-3001}"
+      DATABASE_PATH: /data/clinic.sqlite
+    volumes:
+      - clinic-db:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "http://localhost:${API_PORT:-3000}"
+    ports:
+      - "${FRONTEND_PORT:-3001}:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  clinic-db: {}

@@ -1,3 +1,5 @@
+import { pathToFileURL } from 'node:url';
+import type { DataSource } from 'typeorm';
 import { AppDataSource, DATABASE_PATH } from '../database/data-source.js';
 import { Agent } from '../entities/agent.entity.js';
 import { Ailment } from '../entities/ailment.entity.js';
@@ -8,19 +10,28 @@ import { Booking } from '../entities/booking.entity.js';
  * Populates a freshly migrated database with representative rows across all four
  * entities and their relationships. Safely re-runnable: it clears the four
  * tables first. Run against a migrated DB (`npm run migration:run` first).
+ *
+ * Pass a `dataSource` to reuse an already-initialized connection (the caller
+ * then owns its lifecycle); with no argument it initializes and destroys the
+ * stand-alone {@link AppDataSource} itself, which is what `npm run seed` /
+ * `npm run db:reset` rely on.
  */
-async function seed(): Promise<void> {
-  await AppDataSource.initialize();
+export async function seed(dataSource?: DataSource): Promise<void> {
+  const ds = dataSource ?? AppDataSource;
+  const ownsConnection = dataSource === undefined;
+  if (ownsConnection && !ds.isInitialized) {
+    await ds.initialize();
+  }
 
   // Clear in FK-safe order so the script is safely re-runnable.
   for (const table of ['booking', 'ailment_therapy', 'ailment', 'therapy', 'agent']) {
-    await AppDataSource.query(`DELETE FROM "${table}"`);
+    await ds.query(`DELETE FROM "${table}"`);
   }
 
-  const agents = AppDataSource.getRepository(Agent);
-  const ailments = AppDataSource.getRepository(Ailment);
-  const therapies = AppDataSource.getRepository(Therapy);
-  const bookings = AppDataSource.getRepository(Booking);
+  const agents = ds.getRepository(Agent);
+  const ailments = ds.getRepository(Ailment);
+  const therapies = ds.getRepository(Therapy);
+  const bookings = ds.getRepository(Booking);
 
   const claude = await agents.save(
     agents.create({
@@ -121,10 +132,15 @@ async function seed(): Promise<void> {
       `(e.g. "${latePings.name}" has 2 recommended therapies).`,
   );
 
-  await AppDataSource.destroy();
+  if (ownsConnection) {
+    await ds.destroy();
+  }
 }
 
-seed().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Run directly (`npm run seed` / `npm run db:reset`): always wipe + reseed.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  seed().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

@@ -5,7 +5,16 @@ Update it via the `changelog` skill before merging a branch.
 
 ## 2026-08-30
 
-- Roadmap: added Phase 4 (containerization) — Dockerfiles for `api/` and `frontend/` plus a root `docker-compose.yml` for a one-command `docker compose up --build` stack; renumbered therapy directory, booking flow, staff dashboard, and visual polish to Phases 5–8.
+- Implemented Phase 4 (containerization & one-command run) from `specs/2026-08-30-containerization/`. No product behaviour changes — packaging and developer/testing ergonomics only.
+- Added multi-stage `api/Dockerfile` and `frontend/Dockerfile` (base `node:24-slim`, non-root runtime, no build toolchain in the final image). The API image runs the compiled output via an entrypoint; the frontend image serves the Next.js standalone production server, never `next dev`.
+- Added a root `docker-compose.yml`: `docker compose up --build` from the app root brings up the API on `3000` and the frontend on `3001` at <http://localhost:3001>, with the SQLite database on a named volume. `FRONTEND_ORIGIN` and `NEXT_PUBLIC_API_BASE_URL` are derived from the `API_PORT` / `FRONTEND_PORT` knobs so CORS and the browser's API URL can't desync.
+- API container entrypoint runs pending migrations on every start, then seeds **only if the database is empty** — UI-created data survives `docker compose down` + `up`; `docker compose down -v` returns to clean demo data. `/dev` is off in the container (`NODE_ENV=production`).
+- API: refactored `src/seed/seed.ts` to export a reusable `seed()` function (self-runs only when invoked directly); added `src/seed/seed-if-empty.ts` and the `db:seed:if-empty` npm script. `npm run seed` / `npm run db:reset` behaviour unchanged.
+- Frontend: `next.config.ts` gains `output: "standalone"` and `outputFileTracingRoot` at the app root (for the sibling `packages/types`); `transpilePackages` unchanged. Added `frontend/public/.gitkeep` so the (otherwise empty, untracked) directory exists in a fresh checkout's build context.
+- Docker builds install `typescript` globally in the build stages: `npm ci` runs the `@clinic/types` `prepare` (`tsc`) script (a local `npm install` symlinks and skips it), which would otherwise fail. Not present in either runtime image.
+- Added `.env.example` (two port knobs), app-root `.gitignore` (ignores `.env` / `docker-compose.override.yml`), `.dockerignore`, and a `Makefile` with `up` / `down` / `clean` / `logs` / `seed` / `reset` / `build` aliases over compose.
+- Added a repo-root GitHub Actions workflow (`.github/workflows/agent-health-clinic-docker.yml`) that builds both images (Buildx bake, `type=gha` cache) and runs a cross-service smoke test on PRs touching `apps/agent-health-clinic/**`: waits for both the API and frontend healthchecks, checks liveness of `/` and `/health`, and asserts `GET /agents` with an `Origin` header returns a matching `Access-Control-Allow-Origin` plus the seeded agents; always `down -v`, dumps logs on failure.
+- Docs: README gains a "Run with Docker" section alongside the two-terminal flow; `api/README.md` documents the container entrypoint and `db:seed:if-empty`.
 
 ## 2026-08-29
 
