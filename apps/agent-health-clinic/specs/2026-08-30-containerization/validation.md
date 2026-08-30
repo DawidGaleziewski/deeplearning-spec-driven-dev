@@ -8,12 +8,20 @@ with the SQLite data seeded on first run and persisted afterwards — and with
 Verify from a clean checkout of the branch, with Docker running, `cwd` =
 `apps/agent-health-clinic/`.
 
-> **Status (2026-08-30):** validated on Docker Engine 29.7.2 / Compose v5.5.0
-> (native, WSL2 Ubuntu 24.04). Automated checks run against the live stack; the
+> **Status (2026-08-30):** complete. Validated on Docker Engine 29.7.2 /
+> Compose v5.5.0 (native, WSL2 Ubuntu 24.04): the full CI sequence (bake build
+> of both images → `compose up -d` → wait for both healthchecks → liveness +
+> cross-service CORS/seeded-data checks → `down -v`) was re-run locally from a
+> clean `git archive` of the committed HEAD and passes end to end. The
 > maintainer additionally ran `docker compose up --build` / `down`, the `make`
-> targets (`up` / `down` / `clean`), and confirmed the app renders, works, and
-> is responsive in the browser. **Only open item:** the CI workflow needs its
-> first PR run to go green.
+> targets, confirmed the app renders, works and is responsive in the browser,
+> and confirmed the GitHub Actions workflow run is green.
+>
+> Getting CI green took three follow-up fixes, all packaging-only: install
+> `typescript` in the Docker build stages (`npm ci` runs `@clinic/types`'
+> `prepare`); commit `frontend/public/.gitkeep` (git drops the empty dir, so a
+> fresh checkout's build context lacked it); make the smoke test wait for the
+> **frontend** healthcheck too, not just the API, before curling it.
 
 ## App changes (no behaviour change)
 
@@ -126,13 +134,15 @@ Verify from a clean checkout of the branch, with Docker running, `cwd` =
 
 - [x] `.github/workflows/agent-health-clinic-docker.yml` at the **monorepo
       root** builds both images (bake + `type=gha` cache) and runs the smoke
-      test (`up -d`, wait for `api` healthy, `curl` `/` and `/health` for `200`,
-      `down -v` always, logs on failure), scoped to `apps/agent-health-clinic/**`.
+      test (`up -d`, wait for **both** the `api` and `frontend` healthchecks,
+      retrying `curl` of `/` and `/health` for `200`, `down -v` always, logs on
+      failure), scoped to `apps/agent-health-clinic/**`.
 - [x] The smoke test includes a **cross-service** check: `GET /agents` with
       `Origin: http://localhost:3001` must return a matching
       `Access-Control-Allow-Origin` and list a seeded agent. *(Same check run
       by hand against the live stack — passes.)*
-- [ ] The workflow passes on this branch's PR. *(needs the PR pushed.)*
+- [x] The workflow passes on this branch's PR. *(Maintainer confirmed the run is
+      green; the full sequence also re-run locally from a clean checkout.)*
 
 ## Docs
 
@@ -155,7 +165,7 @@ Verify from a clean checkout of the branch, with Docker running, `cwd` =
 
 ## Ready to merge when
 
-- [ ] All boxes above are checked. *(only open: the CI workflow's first PR run.)*
+- [x] All boxes above are checked.
 - [x] Scope held: no product feature/endpoint/UI/schema change (only the
       `seed.ts` refactor); no cloud deploy, no image registry/push, no Postgres,
       no dev-mode/hot-reload compose, no workspace tooling, no multi-arch, no
