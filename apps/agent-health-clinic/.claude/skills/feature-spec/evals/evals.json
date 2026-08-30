@@ -1,0 +1,35 @@
+{
+  "skill_name": "feature-spec",
+  "evals": [
+    {
+      "id": 0,
+      "name": "rich-prompt",
+      "prompt": "Kick off the next roadmap phase for the agent-health-clinic app. If you need scope / decision / validation input, use these answers: SCOPE - therapy catalog API only (read-only list + get for agents, full CRUD for staff), a browsable responsive catalog page on the frontend, and make the ailment -> recommended-therapy link editable now; NOT in scope: booking flow, the staff dashboard shell, auth. DECISIONS - follow the existing REST conventions and the @clinic/types package pattern, therapies get their own Nest module, the catalog page is a responsive grid (1 column mobile / multi-column desktop). VALIDATION - service unit tests plus e2e for the endpoints, RTL tests for the catalog page, manual responsive checks at 375/768/1280, README + CHANGELOG updated. Create the branch and write the spec folder.",
+      "assertions": [
+        {"text": "A git branch named 2026-08-30-therapy-directory is created off master", "check": "branch"},
+        {"text": "specs/2026-08-30-therapy-directory/ contains exactly requirements.md, plan.md, validation.md", "check": "files"},
+        {"text": "requirements.md has ## Scope with both ### In scope and ### Out of scope, plus a ## Decisions section", "check": "requirements-structure"},
+        {"text": "plan.md has numbered task groups (## 1., ## 2., ...) and a notes-for-the-implementer section", "check": "plan-structure"},
+        {"text": "validation.md is a - [ ] checklist with a 'Ready to merge when' section and a manual responsive section citing 375/768/1280", "check": "validation-structure"},
+        {"text": "The phase is correctly identified as Phase 5 (Therapy directory); booking, dashboard and auth are listed as out of scope", "check": "scope-correct"},
+        {"text": "No commit is made and no application/source code outside specs/ is modified", "check": "no-commit-no-code"}
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "lean-prompt",
+      "prompt": "Set up the feature spec for the next phase on our roadmap (agent-health-clinic). Make the branch and the specs/ folder with the requirements, plan and validation docs. Answers if you ask me anything: keep scope tight to what the roadmap phase text says, follow the same conventions as the last phase, and validate the same way previous phases did (tests + manual responsive + changelog).",
+      "assertions": [
+        {"text": "A git branch named 2026-08-30-therapy-directory is created off master", "check": "branch"},
+        {"text": "specs/2026-08-30-therapy-directory/ contains exactly requirements.md, plan.md, validation.md", "check": "files"},
+        {"text": "requirements.md has ## Scope with both ### In scope and ### Out of scope, plus a ## Decisions section", "check": "requirements-structure"},
+        {"text": "plan.md has numbered task groups (## 1., ## 2., ...) and a notes-for-the-implementer section", "check": "plan-structure"},
+        {"text": "validation.md is a - [ ] checklist with a 'Ready to merge when' section and a manual responsive section citing 375/768/1280", "check": "validation-structure"},
+        {"text": "The phase is correctly identified as Phase 5 (Therapy directory)", "check": "scope-correct"},
+        {"text": "No commit is made and no application/source code outside specs/ is modified", "check": "no-commit-no-code"}
+      ],
+      "files": []
+    }
+  ]
+}
