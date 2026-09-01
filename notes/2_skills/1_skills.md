@@ -86,7 +86,10 @@ Present resaults in table
 Channel, CTR Actual...
 ```
 
-## Other actions and condition
+## Other actions and condition (skill references)
+
+We can reference other promt with extra instructions
+
 ```md
 ## Budget reallocation
 If user asks about budget rellocation read `references/budget.md`
@@ -96,4 +99,6 @@ If user asks about budget rellocation read `references/budget.md`
 
 
 
+# General folder structure for skills
 
+We want one folder with name of the skill like "analyzing-marketing-campaign". Inside SKILL.md holds main skill and in folder /references we have things we can point to with that skill
