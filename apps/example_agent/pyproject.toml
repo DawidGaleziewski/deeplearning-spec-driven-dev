@@ -1,0 +1,49 @@
+[project]
+name = "example-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "DG", email = "dawid.galeziewski@devcom" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "ipython>=9.17.1",
+    "matplotlib>=3.11.1",
+    "openai>=3.11.0",
+    "pandas>=3.0.5",
+    "pyarrow>=25.0.1",
+    "pydantic>=2.13.5",
+    "python-dotenv>=1.2.3",
+]
+
+[project.scripts]
+example-agent = "example_agent.agent:main"
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "darker>=1.7.3",
+    "ruff>=0.16.6",
+]
+
+# darker reformats only the lines you changed vs. `revision`, using black +
+# ruff as the linter. Run: `uv run darker .`  (add --check in CI)
+[tool.darker]
+revision = "master"
+lint = ["ruff check"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]  # line length is black/darker's job
