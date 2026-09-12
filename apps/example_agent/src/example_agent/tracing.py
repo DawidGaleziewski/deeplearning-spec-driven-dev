@@ -4,8 +4,11 @@ Phoenix must already be running (see README.md) — this only configures the
 exporter, it does not start the server.
 """
 
-from phoenix.otel import register
+from functools import cache
+
+from phoenix.otel import register, TracerProvider
 
 
-def setup_tracing() -> None:
-    register(project_name="example-agent", auto_instrument=True)
+@cache
+def setup_tracing() -> TracerProvider:
+    return register(project_name="example-agent", auto_instrument=False)

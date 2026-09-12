@@ -8,16 +8,26 @@ calls.
 
 import json
 
+from phoenix.server.api.routers.v1.spans import StatusCode
+
 from .llm_client import MODEL, client
 from .tools.functions.main import tool_implementations, tools
 from .tracing import setup_tracing
+from openinference.instrumentation.openai import OpenAIInstrumentor
+
+tracer_provider = setup_tracing()
+OpenAIInstrumentor().instrument(
+    tracer_provider=tracer_provider)
+
+trace = tracer_provider.get_tracer(__name__)
 
 SYSTEM_PROMPT = """
 You are a helpful assistant that can answer questions about the Store
 Sales Price Elasticity Promotions dataset.
 """
 
-
+# Decorators area easy way to trace if we dont need extra logic. They will threat this as single span and mark both input and output
+@trace.chain()
 def handle_tool_calls(tool_calls, messages):
     for tool_call in tool_calls:
         function = tool_implementations[tool_call.function.name]
@@ -42,25 +52,42 @@ def run_agent(messages):
 
     while True:
         print("Making router call to OpenAI")
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=messages,
-            tools=tools,
-        )
-        messages.append(response.choices[0].message)
-        tool_calls = response.choices[0].message.tool_calls
+        # Tracing router calls:
+        # Chain  is like a default, basic logic step without any LLm calls etc
+        with trace.start_as_current_span("router_call", openinference_span_kind="chain") as span:
+            span.set_input(value=messages)
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=messages,
+                tools=tools,
+            )
+            messages.append(response.choices[0].message)
+            tool_calls = response.choices[0].message.tool_calls
+            span.set_output(StatusCode.OK)
 
-        if tool_calls:
-            print("Processing tool calls")
-            messages = handle_tool_calls(tool_calls, messages)
-        else:
-            print("No tool calls, returning final answer")
-            return response.choices[0].message.content
+            if tool_calls:
+                print("Processing tool calls")
+                messages = handle_tool_calls(tool_calls, messages)
+                span.set_output(value=tool_calls)
+            else:
+                print("No tool calls, returning final answer")
+                span.set_output(value=response.choices[0].message.content)
+                return response.choices[0].message.content
 
+# This is a wrapper to get our instrumentation going
+def start_main_span(messeges):
+    print("Starting main span with messages: ", messeges)
+
+    with trace.start_as_current_span("AgentRun", openinference_span_kind="agent") as span:
+        span.set_input(value=messeges)
+        ret = run_agent(messeges)
+        print("Main span completed with return value: ", ret)
+        span.set_output(value=ret)
+        span.set_status(StatusCode.OK)
+        return ret
 
 def main() -> None:
-    setup_tracing()
-    result = run_agent(
+    result = start_main_span(
         "Show me all the sales for store 1320 on November 1st, 2021"
     )
     print(result)
