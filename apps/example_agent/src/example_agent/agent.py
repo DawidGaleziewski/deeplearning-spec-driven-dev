@@ -10,6 +10,7 @@ import json
 
 from .llm_client import MODEL, client
 from .tools.functions.main import tool_implementations, tools
+from .tracing import setup_tracing
 
 SYSTEM_PROMPT = """
 You are a helpful assistant that can answer questions about the Store
@@ -58,6 +59,7 @@ def run_agent(messages):
 
 
 def main() -> None:
+    setup_tracing()
     result = run_agent(
         "Show me all the sales for store 1320 on November 1st, 2021"
     )

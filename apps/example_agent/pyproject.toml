@@ -11,6 +11,8 @@ dependencies = [
     "ipython>=9.17.1",
     "matplotlib>=3.11.1",
     "openai>=3.11.0",
+    "openinference-instrumentation-openai>=0.1.60",
+    "opentelemetry-exporter-otlp-proto-http>=1.44.0",
     "pandas>=3.0.5",
     "pyarrow>=25.0.1",
     "pydantic>=2.13.5",
@@ -26,6 +28,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "arize-phoenix>=20.11.0",
     "darker>=1.7.3",
     "ruff>=0.16.6",
 ]
