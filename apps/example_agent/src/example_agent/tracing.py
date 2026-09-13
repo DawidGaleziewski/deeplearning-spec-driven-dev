@@ -8,7 +8,7 @@ from functools import cache
 
 from phoenix.otel import register, TracerProvider
 
-
+PROJECT_NAME = "example-agent-evals"
 @cache
 def setup_tracing() -> TracerProvider:
-    return register(project_name="example-agent", auto_instrument=False)
+    return register(project_name=PROJECT_NAME, auto_instrument=False)
