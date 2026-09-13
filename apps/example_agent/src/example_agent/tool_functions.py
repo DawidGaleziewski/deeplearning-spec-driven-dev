@@ -4,10 +4,15 @@ Safe to import: there are no demo calls here (those live in ``agent.py``).
 """
 
 import pandas as pd
+from phoenix.server.api.routers.v1.spans import StatusCode
 from pydantic import BaseModel, Field
 
 from .database import TABLE_NAME, get_connection
 from .llm_client import MODEL, client
+from .tracing import setup_tracing
+
+tracer_provider = setup_tracing()
+trace = tracer_provider.get_tracer(__name__)
 
 # prompt template for step 2 of tool 1
 SQL_GENERATION_PROMPT = """
@@ -35,6 +40,7 @@ def generate_sql_query(prompt: str, columns: list, table_name: str) -> str:
 
 
 # code for tool 1
+@trace.tool()
 def lookup_sales_data(prompt: str) -> str:
     """Implementation of sales data lookup from the local SQLite database using SQL"""
     try:
@@ -55,8 +61,13 @@ def lookup_sales_data(prompt: str) -> str:
             sql_query = sql_query.strip()
             sql_query = sql_query.replace("```sql", "").replace("```", "")
 
-            # step 3: execute the SQL query
-            result = pd.read_sql_query(sql_query, conn)
+            # We can use with to explictly track part of the function logic in decorator
+            with trace.start_as_current_span("execute_sql_query", openinference_span_kind="chain") as span:
+                span.set_input(sql_query)
+                # step 3: execute the SQL query
+                result = pd.read_sql_query(sql_query, conn)
+                span.set_output(value=str(result))
+                span.set_status(StatusCode.OK)
         finally:
             conn.close()
 
@@ -73,6 +84,7 @@ Your job is to answer the following question: {prompt}
 
 
 # code for tool 2
+@trace.tool()
 def analyze_sales_data(prompt: str, data: str) -> str:
     """Implementation of AI-powered sales data analysis"""
     formatted_prompt = DATA_ANALYSIS_PROMPT.format(data=data, prompt=prompt)
@@ -102,6 +114,8 @@ class VisualizationConfig(BaseModel):
 
 
 # code for step 1 of tool 3
+# as this is part of the tool it is worth using chain here
+@trace.chain()
 def extract_chart_config(data: str, visualization_goal: str) -> dict:
     """Generate chart visualization configuration
 
@@ -153,6 +167,7 @@ config: {config}
 
 
 # code for step 2 of tool 3
+@trace.chain()
 def create_chart(config: dict) -> str:
     """Create a chart based on the configuration"""
     formatted_prompt = CREATE_CHART_PROMPT.format(config=config)
@@ -170,6 +185,7 @@ def create_chart(config: dict) -> str:
 
 
 # code for tool 3
+@trace.tool()
 def generate_visualization(data: str, visualization_goal: str) -> str:
     """Generate a visualization based on the data and goal"""
     config = extract_chart_config(data, visualization_goal)

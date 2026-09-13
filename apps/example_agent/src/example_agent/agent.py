@@ -88,7 +88,7 @@ def start_main_span(messeges):
 
 def main() -> None:
     result = start_main_span(
-        "Show me all the sales for store 1320 on November 1st, 2021"
+        "Look up all sales data for store 1320 on November 1st, 2021, then analyze the data to identify any pricing or promotion trends, and finally generate a visualization showing the sales trend."
     )
     print(result)
 

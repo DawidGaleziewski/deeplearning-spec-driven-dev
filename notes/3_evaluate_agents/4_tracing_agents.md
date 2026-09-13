@@ -13,6 +13,19 @@ records the paths taken by requests - make b an application or end-user) as thee
 data captured onindividual steps in a LLM app or pipilne. Tools chains spans.
 
 
+#### Span categories
+```markdown
+| Operation                       | Span category | Parent          |
+| ------------------------------- | ------------- | --------------- |
+| Answer the user’s question      | AGENT         | None: root span |
+| Decide to search                | LLM           | Agent           |
+| Execute `search_knowledge_base` | TOOL          | Agent           |
+| Query the document index        | RETRIEVER     | Tool            |
+| Generate the final answer       | LLM           | Agent           |
+
+```
+
+
 ## OpenTelemetry (OTEL)
 Most widley used stadard for application observability.
 OTEL includes:
